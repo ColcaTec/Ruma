@@ -31,9 +31,9 @@
     <section id="boleta" class="view">
       <button class="back-button" data-view="inicio">← Inicio</button><p class="eyebrow">NUEVA COMPRA</p><h1>Foto de boleta</h1><p class="muted">Toma una foto o elige una imagen. Revisa siempre los datos antes de guardar.</p>
       <label class="upload-box"><input id="receiptInput" type="file" accept="image/*" capture="environment"><span class="upload-symbol">＋</span><strong>Tomar foto o elegir imagen</strong><small>JPG, PNG o HEIC</small></label>
-      <div id="receiptPreviewWrap" class="preview-wrap" hidden><img id="receiptPreview" alt="Vista previa de la boleta"><button id="readReceipt" class="secondary-button">Leer boleta</button><p id="ocrStatus" class="hint"></p></div>
+      <div id="receiptPreviewWrap" class="preview-wrap" hidden><img id="receiptPreview" alt="Vista previa de la boleta"><button id="readReceipt" class="secondary-button">Leer boleta</button><p id="ocrStatus" class="hint"></p><details id="ocrDetails" hidden><summary>Ver texto leído</summary><pre id="ocrText"></pre></details></div>
       <div class="form-card"><h2>Datos de la compra</h2><label>Empresa o proveedor<input id="receiptSupplier" placeholder="Ej. Distribuidora San José"></label><label>Fecha<input id="receiptDate" type="date"></label></div>
-      <div class="form-card"><div class="form-heading"><h2>Productos de la boleta</h2><button id="addReceiptItem" class="text-button">+ Agregar</button></div><p class="hint">Puedes asignar el código de barras a cada producto.</p><div id="receiptItems"></div></div>
+      <div class="form-card"><div class="form-heading"><h2>Productos de la boleta</h2><button id="addReceiptItem" class="text-button">+ Agregar</button></div><p class="hint">Las líneas sugeridas por OCR se deben revisar. Puedes corregir nombre, cantidad, costo y código.</p><div id="receiptItems"></div></div>
       <button id="saveReceipt" class="primary-button">Guardar compra</button>
     </section>
 
