@@ -4,11 +4,13 @@ Ruma es un proyecto nuevo de compras e inventario, pensado primero para el telé
 
 ## Flujos del producto
 
-- **Compra desde boleta:** tomar o seleccionar una foto, leer texto con OCR opcional, revisar proveedor, productos, códigos, cantidades y costos antes de confirmar.
+- **Compra desde boleta:** tomar o seleccionar una foto, mejorar el contraste para OCR, sugerir el proveedor y proponer líneas con cantidades y costos cuando el formato es reconocible; revisar todo antes de confirmar.
 - **Compra desde catálogo:** escanear un código existente o buscarlo manualmente, editar cantidad/costo de esta compra y sumar al stock.
 - **Catálogo e historial:** guardar unidad, código de barras, stock, costo más reciente y los movimientos de compra.
 
-El prototipo actual guarda la información en el navegador para que el flujo se pueda revisar sin credenciales. Esa información no se sincroniza entre dispositivos. OCR devuelve texto de apoyo, no valida automáticamente que cada línea de la boleta sea un producto correcto.
+La lectura OCR es una sugerencia heurística, no una garantía: los formatos de boleta varían y la foto debe estar enfocada, con buena luz y completa. El texto reconocido queda disponible para revisar. Confirma o corrige proveedor, productos, cantidad y costo antes de guardar.
+
+La app guarda la información en el navegador para que el flujo se pueda revisar sin credenciales. Esa información no se sincroniza entre dispositivos.
 
 ## Preparar Supabase
 
