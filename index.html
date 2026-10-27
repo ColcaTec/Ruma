@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#4a3bd0">
+  <meta name="description" content="Control sencillo de compras e inventario desde tu celular.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <title>Ruma — Compras e inventario</title>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#inicio" aria-label="Ruma, inicio"><span class="brand-icon">r</span><span>ruma<span class="brand-dot">.</span><small>INVENTARIO CLARO</small></span></a>
+    <button id="installButton" class="install-button" hidden>Instalar app</button>
+  </header>
+  <main>
+    <section id="inicio" class="view active">
+      <div class="hero"><div><p class="eyebrow">PANEL DE TU NEGOCIO</p><h1>Que nunca te falte<br class="desktop"> lo que más vendes.</h1><p class="muted">Tus compras y tu stock, en un solo lugar.</p></div><div class="hero-art" aria-hidden="true"><span>R</span><i></i></div></div>
+      <div class="stat-grid"><article class="stat-card"><span class="stat-icon">▦</span><span class="stat-label">Productos</span><strong id="productCount">0</strong></article><article class="stat-card"><span class="stat-icon green">↗</span><span class="stat-label">Unidades en stock</span><strong id="stockCount">0</strong></article></div>
+      <div class="section-kicker"><span>01</span><h2 class="section-title">¿Cómo llegó tu compra?</h2></div>
+      <div class="action-grid">
+        <button class="action-card photo-action" data-view="boleta"><span class="action-icon">01</span><span><strong>Vino en una boleta</strong><small>Fotografía, revisa y registra los detalles</small></span><span class="arrow">↗</span></button>
+        <button class="action-card scan-action" data-view="escanear"><span class="action-icon">02</span><span><strong>Ya lo tienes en catálogo</strong><small>Escanea, ingresa cantidad y costo</small></span><span class="arrow">↗</span></button>
+      </div>
+      <div class="recent-head"><div class="section-kicker"><span>02</span><h2 class="section-title">Actividad reciente</h2></div><button class="text-button" data-view="historial">Ver todo ↗</button></div>
+      <div id="recentPurchases" class="purchase-list"></div>
+    </section>
+
+    <section id="boleta" class="view">
+      <button class="back-button" data-view="inicio">← Inicio</button><p class="eyebrow">NUEVA COMPRA</p><h1>Foto de boleta</h1><p class="muted">Toma una foto o elige una imagen. Revisa siempre los datos antes de guardar.</p>
+      <label class="upload-box"><input id="receiptInput" type="file" accept="image/*" capture="environment"><span class="upload-symbol">＋</span><strong>Tomar foto o elegir imagen</strong><small>JPG, PNG o HEIC</small></label>
+      <div id="receiptPreviewWrap" class="preview-wrap" hidden><img id="receiptPreview" alt="Vista previa de la boleta"><button id="readReceipt" class="secondary-button">Leer boleta</button><p id="ocrStatus" class="hint"></p></div>
+      <div class="form-card"><h2>Datos de la compra</h2><label>Empresa o proveedor<input id="receiptSupplier" placeholder="Ej. Distribuidora San José"></label><label>Fecha<input id="receiptDate" type="date"></label></div>
+      <div class="form-card"><div class="form-heading"><h2>Productos de la boleta</h2><button id="addReceiptItem" class="text-button">+ Agregar</button></div><p class="hint">Puedes asignar el código de barras a cada producto.</p><div id="receiptItems"></div></div>
+      <button id="saveReceipt" class="primary-button">Guardar compra</button>
+    </section>
+
+    <section id="escanear" class="view">
+      <button class="back-button" data-view="inicio">← Inicio</button><p class="eyebrow">NUEVA COMPRA</p><h1>Escanear productos</h1><p class="muted">Escanea productos de tu catálogo y registra cuántos compraste.</p>
+      <div class="scanner-card"><video id="cameraVideo" playsinline muted hidden></video><div id="scannerPlaceholder" class="scanner-placeholder"><span>▥</span><small>Apunta la cámara al código de barras</small></div><button id="startScanner" class="primary-button">Abrir cámara</button><button id="stopScanner" class="secondary-button" hidden>Detener cámara</button></div>
+      <div class="manual-code"><label for="barcodeSearch">O ingresa el código manualmente</label><div class="input-row"><input id="barcodeSearch" inputmode="numeric" placeholder="Código de barras"><button id="findBarcode" class="secondary-button">Buscar</button></div><small id="scannerHint" class="hint">La cámara requiere permiso y conexión segura (HTTPS).</small></div>
+      <div id="selectedProduct" class="form-card" hidden></div>
+      <div class="form-card"><div class="form-heading"><h2>Productos de esta compra</h2></div><div id="cartItems"><p class="empty-state">Aún no agregas productos.</p></div><label>Proveedor<input id="scanSupplier" placeholder="Opcional"></label><label>Fecha<input id="scanDate" type="date"></label><button id="saveScanPurchase" class="primary-button" disabled>Guardar compra</button></div>
+    </section>
+
+    <section id="productos" class="view"><button class="back-button" data-view="inicio">← Inicio</button><p class="eyebrow">TU CATÁLOGO</p><h1>Productos</h1><div class="input-row search-row"><input id="productSearch" placeholder="Buscar por nombre o código"><button id="newProduct" class="secondary-button">+ Nuevo</button></div><div id="productList" class="product-list"></div></section>
+    <section id="historial" class="view"><button class="back-button" data-view="inicio">← Inicio</button><p class="eyebrow">MOVIMIENTOS</p><h1>Historial de compras</h1><div id="purchaseHistory" class="purchase-list"></div></section>
+  </main>
+  <nav class="section-nav" aria-label="Secciones"><span class="nav-caption">TU ESPACIO</span><button class="nav-item selected" data-view="inicio"><span>01</span>Resumen</button><button class="nav-item" data-view="productos"><span>02</span>Productos</button><button class="nav-item" data-view="historial"><span>03</span>Movimientos</button></nav>
+  <dialog id="productDialog"><form id="productForm" method="dialog"><div class="dialog-head"><h2>Nuevo producto</h2><button type="button" id="closeDialog" class="close-button">×</button></div><label>Nombre del producto<input id="newProductName" required placeholder="Ej. Arroz extra 1 kg"></label><label>Código de barras<input id="newProductBarcode" placeholder="Escanéalo o escríbelo"></label><div class="two-fields"><label>Unidad<input id="newProductUnit" value="unidad" placeholder="unidad, kg, caja"></label><label>Stock inicial<input id="newProductStock" type="number" min="0" step="any" value="0"></label></div><label>Costo unitario (S/)<input id="newProductCost" type="number" min="0" step="0.01" placeholder="0.00"></label><button class="primary-button">Guardar producto</button></form></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
+
