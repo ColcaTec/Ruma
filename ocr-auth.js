@@ -121,7 +121,7 @@
       const manual = [...$('receiptItems').querySelectorAll('.item-row')].filter(row => row.querySelector('.item-name').value.trim());
       $('receiptItems').querySelectorAll('[data-ocr-draft="true"]').forEach(row => row.remove());
       if (!manual.length) $('receiptItems').querySelectorAll('.item-row').forEach(row => { if (!row.querySelector('.item-name').value.trim()) row.remove(); });
-      items.forEach(item => addItemRow({ name: item.producto || item.texto_original, qty: item.cantidad || 1, cost: item.precio_unitario ?? '', ocrDraft: true }));
+      items.forEach(item => addItemRow({ name: item.producto || item.texto_original, qty: item.cantidad ?? '', cost: item.precio_unitario ?? '', ocrDraft: true }));
       if (!items.length) {
         if (!$('receiptItems').querySelector('.item-row')) addItemRow();
         status.textContent = `No se detectaron productos con suficiente información. ${Array.isArray(data.alertas) ? data.alertas.join(' ') : 'Revisa la foto o agrégalos manualmente.'}`;
