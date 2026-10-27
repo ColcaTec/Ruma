@@ -108,7 +108,9 @@
       if (response.status === 403) throw new Error('Tu cuenta aún no está habilitada para usar Ruma. Pide al administrador que la active.');
       if (!response.ok) {
         if (result.error === 'sin_clave_gemini') throw new Error('Falta configurar GEMINI_API_KEY en los secretos de Supabase.');
-        if (result.error === 'gemini') throw new Error(`Gemini respondió con error ${result.status || ''}. Revisa el modelo y la clave configurados en Supabase.`);
+        if (result.error === 'gemini' && result.status === 503) throw new Error('Gemini está temporalmente saturado (503). La función ya reintentó el análisis; espera un momento y vuelve a leer la boleta.');
+        if (result.error === 'gemini' && result.status === 429) throw new Error('Gemini alcanzó el límite de solicitudes. Espera un momento y vuelve a intentarlo.');
+        if (result.error === 'gemini') throw new Error(`Gemini respondió con error ${result.status || ''}. Revisa la clave y el modelo en Supabase.`);
         throw new Error(result.detail || result.error || 'No se pudo analizar la foto.');
       }
       const data = result.data || {};
