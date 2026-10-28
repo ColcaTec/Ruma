@@ -143,6 +143,16 @@
     stateLabel('Sincronizado', 'saved');
   }
   function formStatus(text) { $('authStatus').textContent = text; }
+  function friendlyAuthError(error, mode) {
+    const message = String(error?.message || error || '');
+    if (/email rate limit exceeded|over_email_send_rate_limit/i.test(message)) {
+      return 'Se alcanzó el límite gratuito de correos de confirmación de Supabase (2 por hora). Revisa tu bandeja y spam; si no llegó ningún correo, espera una hora antes de volver a crear la cuenta. Para permitir más registros habrá que configurar un servicio SMTP propio.';
+    }
+    if (/already registered|user already exists/i.test(message)) return 'Ese correo ya tiene una cuenta. Prueba “Iniciar sesión”; si aún no la confirmaste, revisa el correo de verificación.';
+    if (/invalid login credentials/i.test(message)) return 'El correo o la contraseña no coinciden. Si todavía no creaste la cuenta, pulsa “Crear cuenta”.';
+    if (/redirect.*not allowed|not whitelisted/i.test(message)) return 'Supabase no tiene autorizada la dirección de Ruma para volver después de confirmar el correo. Hay que agregar https://colcatec.github.io/Ruma/ en Auth → URL Configuration.';
+    return message || (mode === 'signup' ? 'No se pudo crear la cuenta.' : 'No se pudo iniciar sesión. Revisa el correo y la contraseña.');
+  }
   function installSession(data) {
     const next = { ...data, expires_at: Math.floor(Date.now() / 1000) + Number(data.expires_in || 3600) };
     writeSession(next);
@@ -170,7 +180,7 @@
       event.currentTarget.reset();
       formStatus('');
     } catch (error) {
-      formStatus(error.message || 'No se pudo iniciar sesión. Revisa el correo y la contraseña.');
+      formStatus(friendlyAuthError(error, mode));
     } finally { $('authForm').querySelectorAll('button').forEach(button => button.disabled = false); }
   });
   async function importLocal(showConfirmation = false) {
