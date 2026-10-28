@@ -64,11 +64,15 @@
       const pack = info.type !== 'single';
       const eachCount = stock * size;
       const cost = Number(product.cost || 0);
+      const unitCost = Number(product.averageUnitCost || cost / size);
       const detail = pack
-        ? `${esc(product.barcode || 'Sin código')} · ${money(cost)} / ${esc(info.packUnit)} · ${money(cost / size)} / ${esc(info.itemUnit)}`
+        ? `${esc(product.barcode || 'Sin código')} · ${money(cost)} / ${esc(info.packUnit)} · ${money(unitCost)} / ${esc(info.itemUnit)}`
         : `${esc(product.barcode || 'Sin código')} · ${money(cost)} / ${esc(product.unit || 'unidad')}`;
+      const wholePackages = Math.floor(stock + 1e-8);
+      const looseUnits = info.type === 'count' ? Math.round((stock - wholePackages) * size) : 0;
+      const packageDescription = `${wholePackages} ${info.packUnit}${wholePackages === 1 ? '' : 's'}${looseUnits > 0 ? ` + ${looseUnits} suelta${looseUnits === 1 ? '' : 's'}` : ''}`;
       const stockInfo = pack
-        ? `<span class="row-total"><strong>${formatQty(eachCount)} ${esc(info.type === 'weight' ? info.itemUnit : 'unidades')}</strong><small>${formatQty(stock)} ${esc(info.packUnit)}${Math.abs(stock) === 1 || info.packUnit.endsWith('s') ? '' : 's'}</small></span>`
+        ? `<span class="row-total"><strong>${formatQty(eachCount)} ${esc(info.type === 'weight' ? info.itemUnit : 'unidades')}</strong><small>${esc(info.type === 'count' ? packageDescription : `${formatQty(stock)} ${info.packUnit}${Math.abs(stock) === 1 || info.packUnit.endsWith('s') ? '' : 's'}`)}</small></span>`
         : `<span class="row-total">${formatQty(stock)} ${esc(product.unit || 'unidad')}</span>`;
       return `<div class="product-row"><span class="row-icon">▦</span><span class="row-main"><strong>${esc(product.name)}</strong><small>${detail}</small></span>${stockInfo}</div>`;
     }).join('') : '<p class="empty-state">No hay productos todavía. Crea uno desde “+ Nuevo”.</p>';
@@ -90,6 +94,5 @@
     const units = state.products.reduce((total, product) => total + (packageInfo(product).type === 'weight' ? 0 : Number(product.stock || 0) * packageSize(product)), 0);
     if ($('stockCount')) $('stockCount').textContent = formatQty(units);
   }
-  window.RumaUnits = { packageSize, inferPackSize };
+  window.RumaUnits = { packageSize, inferPackSize, packageInfo };
 })();
-

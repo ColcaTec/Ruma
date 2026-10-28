@@ -94,7 +94,7 @@
   async function applyCloudData(data, rowRevision) {
     revision = Number(rowRevision || 0);
     app.replaceData(data || { products: [], purchases: [] });
-    if (businessId) localStorage.setItem(`ruma_inventory_${businessId}_v1`, JSON.stringify(data || { products: [], purchases: [] }));
+    if (businessId) localStorage.setItem(`ruma_inventory_${businessId}_v1`, JSON.stringify(app.getLocalData()));
   }
   async function afterSignIn() {
     stateLabel('Cargando tu inventario…');
@@ -117,11 +117,12 @@
         if (confirm(`Encontré ${count} producto${count === 1 ? '' : 's'} guardado${count === 1 ? '' : 's'} en este dispositivo. La nube está vacía. ¿Quieres importarlo a tu cuenta Ruma?`)) await importLocal(false);
         return;
       }
-      const hasSeparateCopy = hasData(local) && hasData(row.data) && JSON.stringify(local) !== JSON.stringify(row.data);
+      const hasSeparateCopy = row.data?.bonusUnitModel === 'bonus-units-v1' && hasData(local) && hasData(row.data) && JSON.stringify(local) !== JSON.stringify(row.data);
       if (hasSeparateCopy) {
         localStorage.setItem(`ruma_legacy_backup_${businessId}_v1`, JSON.stringify(local));
       }
       await applyCloudData(row.data, row.revision);
+      if (row.data?.bonusUnitModel !== 'bonus-units-v1') revision = await saveSnapshot(app.getLocalData(), revision);
       showApp();
       stateLabel(hasSeparateCopy ? 'La nube ya tiene datos; una copia diferente de este dispositivo quedó guardada por separado' : 'Sincronizado', hasSeparateCopy ? 'error' : 'saved');
       return;
@@ -137,8 +138,9 @@
       }
       return;
     }
-    await applyCloudData({ products: [], purchases: [] }, 0);
-    revision = await saveSnapshot({ products: [], purchases: [] }, 0);
+    const emptyInventory = { products: [], purchases: [], sales: [], bonusUnitModel: 'bonus-units-v1' };
+    await applyCloudData(emptyInventory, 0);
+    revision = await saveSnapshot(emptyInventory, 0);
     showApp();
     stateLabel('Sincronizado', 'saved');
   }
@@ -313,7 +315,9 @@
     const row = rows[0];
     if (!row || Number(row.revision) <= revision) return;
     if (keepBackup) localStorage.setItem('ruma_conflict_backup_v1', JSON.stringify(app.getLocalData()));
+    const needsMigration = row.data?.bonusUnitModel !== 'bonus-units-v1';
     await applyCloudData(row.data, row.revision);
+    if (needsMigration) revision = await saveSnapshot(app.getLocalData(), revision);
   }
   async function refreshOnFocus() {
     if (document.visibilityState !== 'visible' || !businessId || pending || syncing) return;
