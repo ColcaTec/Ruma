@@ -7,15 +7,28 @@
   <meta name="description" content="Control sencillo de compras e inventario desde tu celular.">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=9">
+  <link rel="stylesheet" href="styles.css?v=10">
   <title>Ruma — Compras e inventario</title>
 </head>
 <body>
   <header class="topbar">
     <a class="brand" href="#inicio" aria-label="Ruma, inicio"><span class="brand-icon">r</span><span>ruma<span class="brand-dot">.</span><small>INVENTARIO CLARO</small></span></a>
+    <div id="accountControls" class="account-controls" hidden><span id="accountEmail"></span><span id="syncStatus" role="status">Conectando…</span><button id="importLocalButton" class="text-button">Importar este dispositivo</button><button id="signOutButton" class="text-button">Salir</button></div>
     <button id="installButton" class="install-button" hidden>Instalar app</button>
   </header>
-  <main>
+  <section id="authGate" class="auth-gate" aria-labelledby="authTitle">
+    <form id="authForm" class="auth-card">
+      <p class="eyebrow">TU INVENTARIO, EN TODOS TUS DISPOSITIVOS</p>
+      <h1 id="authTitle">Entra a Ruma</h1>
+      <p class="muted">Inicia sesión para ver tus compras y existencias desde cualquier dispositivo.</p>
+      <label>Correo electrónico<input name="email" type="email" autocomplete="username" required placeholder="tu@correo.com"></label>
+      <label>Contraseña<input name="password" type="password" autocomplete="current-password" minlength="6" required placeholder="Mínimo 6 caracteres"></label>
+      <button class="primary-button" type="submit" name="mode" value="login">Iniciar sesión</button>
+      <button class="secondary-button" type="submit" name="mode" value="signup">Crear cuenta</button>
+      <p id="authStatus" class="hint" role="status" aria-live="polite"></p>
+    </form>
+  </section>
+  <main id="appMain" hidden>
     <section id="inicio" class="view active">
       <div class="hero"><div><p class="eyebrow">PANEL DE TU NEGOCIO</p><h1>Que nunca te falte<br class="desktop"> lo que más vendes.</h1><p class="muted">Tus compras y tu stock, en un solo lugar.</p></div><div class="hero-art" aria-hidden="true"><span>R</span><i></i></div></div>
       <div class="stat-grid"><article class="stat-card"><span class="stat-icon">▦</span><span class="stat-label">Productos</span><strong id="productCount">0</strong></article><article class="stat-card"><span class="stat-icon green">↗</span><span class="stat-label">Unidades en stock</span><strong id="stockCount">0</strong></article></div>
@@ -51,10 +64,11 @@
     <section id="productos" class="view"><button class="back-button" data-view="inicio">← Inicio</button><p class="eyebrow">TU CATÁLOGO</p><h1>Productos</h1><div class="input-row search-row"><input id="productSearch" placeholder="Buscar por nombre o código"><button id="newProduct" class="secondary-button">+ Nuevo</button></div><div id="productList" class="product-list"></div></section>
     <section id="historial" class="view"><button class="back-button" data-view="inicio">← Inicio</button><p class="eyebrow">MOVIMIENTOS</p><h1>Historial de compras</h1><div id="purchaseHistory" class="purchase-list"></div></section>
   </main>
-  <nav class="section-nav" aria-label="Secciones"><span class="nav-caption">TU ESPACIO</span><button class="nav-item selected" data-view="inicio"><span>01</span>Resumen</button><button class="nav-item" data-view="productos"><span>02</span>Productos</button><button class="nav-item" data-view="historial"><span>03</span>Movimientos</button></nav>
+  <nav id="sectionNav" class="section-nav" aria-label="Secciones" hidden><span class="nav-caption">TU ESPACIO</span><button class="nav-item selected" data-view="inicio"><span>01</span>Resumen</button><button class="nav-item" data-view="productos"><span>02</span>Productos</button><button class="nav-item" data-view="historial"><span>03</span>Movimientos</button></nav>
   <dialog id="productDialog"><form id="productForm" method="dialog"><div class="dialog-head"><h2>Nuevo producto</h2><button type="button" id="closeDialog" class="close-button">×</button></div><label>Nombre del producto<input id="newProductName" required placeholder="Ej. Arroz extra 1 kg"></label><label>Código de barras<input id="newProductBarcode" placeholder="Escanéalo o escríbelo"></label><div class="two-fields"><label>Unidad<input id="newProductUnit" value="unidad" placeholder="unidad, kg, caja"></label><label>Stock inicial<input id="newProductStock" type="number" min="0" step="any" value="0"></label></div><label>Costo unitario (S/)<input id="newProductCost" type="number" min="0" step="0.01" placeholder="0.00"></label><button class="primary-button">Guardar producto</button></form></dialog>
   <div id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=7"></script>
+  <script src="ruma-cloud.js?v=1"></script>
+  <script src="app.js?v=8"></script>
   <script src="ocr-auth.js?v=10"></script>
   <script src="barcode-scan.js?v=9"></script>
   <script src="unit-display.js?v=12"></script>
