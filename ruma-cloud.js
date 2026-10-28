@@ -1,0 +1,253 @@
+(() => {
+  const URL = 'https://eetngbdhgszyknslsjxy.supabase.co';
+  const KEY = 'sb_publishable_KKlDNprxh6szSDMwcz8_jA_hrofgybv';
+  const SESSION_KEY = 'ruma_account_session_v1';
+  let session = null;
+  let businessId = null;
+  let revision = 0;
+  let timer = null;
+  let app = null;
+  let syncing = false;
+  let pending = false;
+  let pendingData = null;
+  let changeVersion = 0;
+
+  const $ = id => document.getElementById(id);
+  const stateLabel = (text, state = '') => {
+    const el = $('syncStatus');
+    if (!el) return;
+    el.textContent = text;
+    el.dataset.state = state;
+  };
+  const parseResponse = async response => {
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.msg || data.message || data.error_description || data.error || 'No se pudo conectar con Ruma.');
+    return data;
+  };
+  const authRequest = async (path, body) => parseResponse(await fetch(`${URL}/auth/v1/${path}`, {
+    method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  }));
+  const readSession = () => {
+    try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; }
+  };
+  const writeSession = value => {
+    session = value;
+    localStorage.setItem(SESSION_KEY, JSON.stringify(value));
+  };
+  async function validSession() {
+    session = readSession();
+    if (!session?.access_token) return null;
+    if (Number(session.expires_at || 0) < Math.floor(Date.now() / 1000) + 60) {
+      if (!session.refresh_token) { localStorage.removeItem(SESSION_KEY); session = null; return null; }
+      try {
+        const refreshed = await authRequest('token?grant_type=refresh_token', { refresh_token: session.refresh_token });
+        session = { ...refreshed, expires_at: Math.floor(Date.now() / 1000) + Number(refreshed.expires_in || 3600) };
+        writeSession(session);
+      } catch { localStorage.removeItem(SESSION_KEY); session = null; return null; }
+    }
+    return session;
+  }
+  async function api(path, options = {}) {
+    const current = await validSession();
+    if (!current) throw new Error('Tu sesión venció. Inicia sesión nuevamente.');
+    const response = await fetch(`${URL}/rest/v1/${path}`, {
+      ...options,
+      headers: {
+        apikey: KEY,
+        Authorization: `Bearer ${current.access_token}`,
+        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(options.headers || {}),
+      },
+    });
+    return parseResponse(response);
+  }
+  async function loadCloud() {
+    const user = await parseResponse(await fetch(`${URL}/auth/v1/user`, {
+      headers: { apikey: KEY, Authorization: `Bearer ${(await validSession()).access_token}` },
+    }));
+    const memberships = await api(`business_members?select=business_id&user_id=eq.${encodeURIComponent(user.id)}`);
+    if (!memberships.length) throw new Error('No se encontró el espacio de esta cuenta. Cierra sesión e inténtalo otra vez.');
+    businessId = memberships[0].business_id;
+    $('accountEmail').textContent = user.email || 'Cuenta Ruma';
+    const rows = await api(`inventory_snapshots?select=data,revision,updated_at&business_id=eq.${encodeURIComponent(businessId)}&limit=1`);
+    return { user, row: rows[0] || null };
+  }
+  async function saveSnapshot(data, expectedRevision) {
+    const result = await api('rpc/ruma_save_inventory_snapshot', {
+      method: 'POST', body: JSON.stringify({ p_business_id: businessId, p_data: data, p_expected_revision: expectedRevision }),
+    });
+    return Number(result);
+  }
+  function hasData(data) { return Boolean(data?.products?.length || data?.purchases?.length); }
+  function showApp() {
+    $('authGate').hidden = true;
+    $('appMain').hidden = false;
+    $('sectionNav').hidden = false;
+    $('accountControls').hidden = false;
+  }
+  function showGate() {
+    $('authGate').hidden = false;
+    $('appMain').hidden = true;
+    $('sectionNav').hidden = true;
+    $('accountControls').hidden = true;
+  }
+  async function applyCloudData(data, rowRevision) {
+    revision = Number(rowRevision || 0);
+    app.replaceData(data || { products: [], purchases: [] });
+    if (businessId) localStorage.setItem(`ruma_inventory_${businessId}_v1`, JSON.stringify(data || { products: [], purchases: [] }));
+  }
+  async function afterSignIn() {
+    stateLabel('Cargando tu inventario…');
+    const { user, row } = await loadCloud();
+    const claimed = localStorage.getItem('ruma_legacy_inventory_owner_v1');
+    let local = { products: [], purchases: [] };
+    const ownCache = localStorage.getItem(`ruma_inventory_${businessId}_v1`);
+    if (ownCache) {
+      try { local = JSON.parse(ownCache); } catch { local = { products: [], purchases: [] }; }
+    } else if (!claimed) {
+      local = app.getLocalData();
+      localStorage.setItem('ruma_legacy_inventory_owner_v1', user.id);
+    }
+    if (row) {
+      await applyCloudData(row.data, row.revision);
+      showApp();
+      stateLabel('Sincronizado', 'saved');
+      return;
+    }
+    revision = 0;
+    if (hasData(local)) {
+      await applyCloudData(local, 0);
+      showApp();
+      stateLabel('Inventario de este dispositivo pendiente de subir', 'error');
+      const count = local.products?.length || 0;
+      if (confirm(`Encontré ${count} producto${count === 1 ? '' : 's'} guardado${count === 1 ? '' : 's'} en este dispositivo. ¿Quieres importarlo a tu cuenta Ruma para verlo también en tus otros dispositivos?`)) {
+        await importLocal(false);
+      }
+      return;
+    }
+    await applyCloudData({ products: [], purchases: [] }, 0);
+    revision = await saveSnapshot({ products: [], purchases: [] }, 0);
+    showApp();
+    stateLabel('Sincronizado', 'saved');
+  }
+  function formStatus(text) { $('authStatus').textContent = text; }
+  function installSession(data) {
+    const next = { ...data, expires_at: Math.floor(Date.now() / 1000) + Number(data.expires_in || 3600) };
+    writeSession(next);
+  }
+  $('authForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    const submitter = event.submitter;
+    const mode = submitter?.value || 'login';
+    const form = new FormData(event.currentTarget);
+    const email = String(form.get('email') || '').trim();
+    const password = String(form.get('password') || '');
+    $('authForm').querySelectorAll('button').forEach(button => button.disabled = true);
+    formStatus(mode === 'signup' ? 'Creando tu cuenta…' : 'Verificando tus datos…');
+    try {
+      const result = mode === 'signup'
+        ? await authRequest('signup', { email, password })
+        : await authRequest('token?grant_type=password', { email, password });
+      if (!result.access_token) {
+        formStatus('Cuenta creada. Revisa tu correo y confirma la dirección para poder iniciar sesión.');
+        return;
+      }
+      installSession(result);
+      formStatus('Sesión iniciada. Cargando tu inventario…');
+      await afterSignIn();
+      event.currentTarget.reset();
+      formStatus('');
+    } catch (error) {
+      formStatus(error.message || 'No se pudo iniciar sesión. Revisa el correo y la contraseña.');
+    } finally { $('authForm').querySelectorAll('button').forEach(button => button.disabled = false); }
+  });
+  async function importLocal(showConfirmation = false) {
+    if (!businessId || syncing) return;
+    const data = app.getLocalData();
+    if (!hasData(data)) { stateLabel('Este dispositivo no tiene datos para importar'); return; }
+    if (showConfirmation && !confirm('Subirás el inventario guardado en este dispositivo. Solo se puede importar si la cuenta todavía no tiene productos ni compras.')) return;
+    const rows = await api(`inventory_snapshots?select=data,revision&business_id=eq.${encodeURIComponent(businessId)}&limit=1`);
+    const row = rows[0] || null;
+    if (row && hasData(row.data)) {
+      stateLabel('La cuenta ya tiene inventario; no se reemplazó', 'error');
+      alert('Esta cuenta ya tiene productos o compras en la nube. No se reemplazó nada.');
+      return;
+    }
+    revision = Number(row?.revision || 0);
+    syncing = true;
+    try {
+      revision = await saveSnapshot(data, revision);
+      stateLabel('Inventario importado y sincronizado', 'saved');
+    } catch (error) { stateLabel(error.message || 'No se pudo importar el inventario', 'error'); }
+    finally { syncing = false; }
+  }
+  $('importLocalButton').addEventListener('click', () => importLocal(true));
+  $('signOutButton').addEventListener('click', async () => {
+    const current = await validSession();
+    try { if (current) await fetch(`${URL}/auth/v1/logout`, { method: 'POST', headers: { apikey: KEY, Authorization: `Bearer ${current.access_token}` } }); } catch {}
+    localStorage.removeItem(SESSION_KEY);
+    session = null; businessId = null; revision = 0;
+    showGate(); formStatus('Cerraste sesión. Tus datos siguen guardados en la nube.');
+  });
+  function changed(data) {
+    if (!session || !businessId) return;
+    localStorage.setItem(`ruma_inventory_${businessId}_v1`, JSON.stringify(data));
+    pendingData = data;
+    changeVersion++;
+    pending = true;
+    stateLabel('Guardando…');
+    clearTimeout(timer);
+    timer = setTimeout(() => pushLatest(data), 700);
+  }
+  async function pushLatest(data) {
+    if (data) pendingData = data;
+    if (!pending || syncing || !businessId) return;
+    syncing = true;
+    const versionAtStart = changeVersion;
+    try {
+      revision = await saveSnapshot(pendingData, revision);
+      if (versionAtStart === changeVersion) {
+        pending = false;
+        stateLabel('Sincronizado', 'saved');
+      }
+    } catch (error) {
+      if (String(error.message).includes('cambió en otro dispositivo')) {
+        pending = false;
+        localStorage.setItem('ruma_conflict_backup_v1', JSON.stringify(app.getLocalData()));
+        await pullLatest(true);
+        stateLabel('Llegaron cambios de otro dispositivo. Tu copia anterior quedó guardada en este navegador.', 'error');
+      } else {
+        pending = true;
+        stateLabel(`Sin conexión con la nube; se reintentará. ${error.message}`, 'error');
+      }
+    } finally {
+      syncing = false;
+      if (pending) timer = setTimeout(() => pushLatest(pendingData), 8000);
+    }
+  }
+  async function pullLatest(keepBackup = false) {
+    if (!businessId) return;
+    const rows = await api(`inventory_snapshots?select=data,revision&business_id=eq.${encodeURIComponent(businessId)}&limit=1`);
+    const row = rows[0];
+    if (!row || Number(row.revision) <= revision) return;
+    if (keepBackup) localStorage.setItem('ruma_conflict_backup_v1', JSON.stringify(app.getLocalData()));
+    await applyCloudData(row.data, row.revision);
+  }
+  async function refreshOnFocus() {
+    if (document.visibilityState !== 'visible' || !businessId || pending || syncing) return;
+    try { await pullLatest(); } catch { /* The next focus or polling cycle will retry. */ }
+  }
+  window.addEventListener('focus', refreshOnFocus);
+  window.addEventListener('online', () => { if (pending) pushLatest(pendingData); });
+  setInterval(refreshOnFocus, 20000);
+
+  async function init(callbacks) {
+    app = callbacks;
+    const current = await validSession();
+    if (!current) { showGate(); return; }
+    try { await afterSignIn(); }
+    catch (error) { showGate(); formStatus(error.message || 'No se pudo cargar tu cuenta. Intenta iniciar sesión otra vez.'); }
+  }
+  window.RumaCloud = { init, changed, signOut: () => $('signOutButton').click() };
+})();
+
