@@ -24,3 +24,6 @@ El workflow `.github/workflows/pages.yml` publica los archivos estáticos con Gi
 
 Para probar localmente, sirve esta carpeta con un servidor estático y abre su dirección desde el teléfono.
 
+## Catálogo compartido para «Ya lo tienes en catálogo»
+
+Para habilitar la búsqueda de productos entre cuentas, ejecuta una sola vez el contenido de [`supabase/shared_catalog.sql`](supabase/shared_catalog.sql) desde **Supabase → SQL Editor** del proyecto Ruma. La migración copia de los inventarios existentes únicamente nombre, código de barras, unidad y unidades por paquete; no copia costos, precios, stock, vencimientos, proveedores ni compras. La función queda disponible solo para cuentas autenticadas y se usa en el flujo de compra por catálogo/escáner.

@@ -7,7 +7,7 @@
   <meta name="description" content="Control sencillo de compras e inventario desde tu celular.">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=17">
+  <link rel="stylesheet" href="styles.css?v=18">
   <title>Ruma — Compras e inventario</title>
 </head>
 <body>
@@ -67,7 +67,7 @@
     <section id="escanear" class="view">
       <button class="back-button" data-view="inicio">← Inicio</button><p class="eyebrow">NUEVA COMPRA</p><h1>Agregar productos</h1><p class="muted">Escanea con la cámara o búscalos por nombre en tu catálogo.</p>
       <div class="scanner-card"><video id="cameraVideo" playsinline muted hidden></video><div id="scannerPlaceholder" class="scanner-placeholder"><span>▥</span><small>Apunta la cámara al código de barras</small></div><button id="startScanner" class="primary-button">Abrir cámara</button><button id="stopScanner" class="secondary-button" hidden>Detener cámara</button></div>
-      <div class="manual-code"><label for="scanProductSearch">Buscar producto por nombre</label><input id="scanProductSearch" placeholder="Escribe el nombre del producto" autocomplete="off"><div id="scanSearchResults" class="sale-search-results"></div><small id="scannerHint" class="hint">Elige un producto de tu catálogo o usa la cámara para escanearlo.</small></div>
+      <div class="manual-code"><label for="scanProductSearch">Buscar producto por nombre</label><input id="scanProductSearch" placeholder="Escribe el nombre del producto" autocomplete="off"><div id="scanSearchResults" class="sale-search-results"></div><small id="scannerHint" class="hint">Busca productos de tu catálogo y del catálogo compartido. El costo de compra lo ingresas para tu negocio.</small></div>
       <div id="selectedProduct" class="form-card" hidden></div>
       <div class="form-card"><div class="form-heading"><h2>Productos de esta compra</h2></div><div id="cartItems"><p class="empty-state">Aún no agregas productos.</p></div><label>Proveedor<input id="scanSupplier" placeholder="Opcional"></label><label>Fecha<input id="scanDate" type="date"></label><button id="saveScanPurchase" class="primary-button" disabled>Guardar compra</button></div>
     </section>
@@ -84,10 +84,11 @@
   </main>
   <nav id="sectionNav" class="section-nav" aria-label="Secciones" hidden><span class="nav-caption">TU ESPACIO</span><button class="nav-item selected" data-view="inicio"><span>01</span>Resumen</button><button class="nav-item" data-view="productos"><span>02</span>Productos</button><button class="nav-item" data-view="historial"><span>03</span>Movimientos</button></nav>
   <dialog id="productDialog"><form id="productForm" method="dialog"><div class="dialog-head"><h2>Nuevo producto</h2><button type="button" id="closeDialog" class="close-button">×</button></div><label>Nombre del producto<input id="newProductName" required placeholder="Ej. Arroz extra 1 kg"></label><label>Código de barras<input id="newProductBarcode" placeholder="Escanéalo o escríbelo"></label><div class="two-fields"><label>Unidad<input id="newProductUnit" value="unidad" placeholder="unidad, kg, caja"></label><label>Stock inicial<input id="newProductStock" type="number" min="0" step="any" value="0"></label></div><label>Costo unitario (S/)<input id="newProductCost" type="number" min="0" step="0.01" placeholder="0.00"></label><label>Precio de venta sugerido (S/)<input id="newProductSalePrice" type="number" min="0" step="0.01" placeholder="Opcional"></label><label>Fecha de vencimiento del stock inicial<input id="newProductExpiration" type="date"></label><button class="primary-button">Guardar producto</button></form></dialog>
+  <dialog id="sharedProductDialog"><form id="sharedProductForm"><div class="dialog-head"><h2>Agregar al catálogo compartido</h2><button type="button" id="closeSharedProduct" class="close-button" aria-label="Cerrar">×</button></div><p class="muted">Solo compartiremos nombre, código, unidad y unidades por paquete. El costo lo ingresas para tu negocio.</p><label>Nombre del producto<input id="sharedProductName" required maxlength="120" placeholder="Ej. Gaseosa Pepsi 355 ml x 15"></label><label>Código de barras<input id="sharedProductBarcode" maxlength="64" placeholder="Opcional"></label><div class="two-fields"><label>Unidad<input id="sharedProductUnit" maxlength="24" value="unidad"></label><label>Unidades por paquete<input id="sharedProductPackSize" type="number" min="1" step="1" placeholder="Opcional"></label></div><div class="stock-edit-actions"><button type="button" id="cancelSharedProduct" class="secondary-button">Cancelar</button><button type="submit" class="primary-button">Agregar y comprar</button></div></form></dialog>
   <dialog id="stockEditDialog"><form id="stockEditForm"><div class="dialog-head"><h2>Editar cantidad</h2><button type="button" id="closeStockEdit" class="close-button" aria-label="Cerrar">×</button></div><p id="stockEditProduct" class="muted"></p><input id="stockEditId" type="hidden"><label>Existencias actuales<input id="stockEditQuantity" type="number" min="0" step="any" required></label><small id="stockEditUnit" class="hint"></small><div class="stock-edit-actions"><button type="button" id="cancelStockEdit" class="secondary-button">Cancelar</button><button class="primary-button">Guardar cantidad</button></div></form></dialog>
   <div id="toast" role="status" aria-live="polite"></div>
-  <script src="ruma-cloud.js?v=6"></script>
-  <script src="app.js?v=15"></script>
+  <script src="ruma-cloud.js?v=7"></script>
+  <script src="app.js?v=16"></script>
   <script src="ocr-auth.js?v=10"></script>
   <script src="barcode-scan.js?v=10"></script>
   <script src="unit-display.js?v=15"></script>

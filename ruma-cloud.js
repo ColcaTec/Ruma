@@ -334,5 +334,16 @@
     try { await afterSignIn(); }
     catch (error) { showGate(); formStatus(error.message || 'No se pudo cargar tu cuenta. Intenta iniciar sesión otra vez.'); }
   }
-  window.RumaCloud = { init, changed, signOut: () => $('signOutButton').click() };
+  async function searchSharedProducts(query) {
+    const rows = await api('rpc/ruma_search_shared_products', { method: 'POST', body: JSON.stringify({ p_query: query }) });
+    return Array.isArray(rows) ? rows : [];
+  }
+  async function publishSharedProduct(product) {
+    const rows = await api('rpc/ruma_publish_shared_product', { method: 'POST', body: JSON.stringify({
+      p_name: product.name, p_barcode: product.barcode || null, p_unit: product.unit || 'unidad',
+      p_units_per_package: Number(product.unitsPerPackage) || 1,
+    }) });
+    return Array.isArray(rows) ? rows[0] : rows;
+  }
+  window.RumaCloud = { init, changed, searchSharedProducts, publishSharedProduct, signOut: () => $('signOutButton').click() };
 })();
