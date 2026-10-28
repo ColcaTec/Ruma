@@ -3,7 +3,8 @@
   const $ = id => document.getElementById(id);
   const formatQty = value => Number(value || 0).toLocaleString('es-PE', { maximumFractionDigits: 3 });
   const inferPackSize = name => {
-    const match = String(name || '').match(/\bx\s*(\d{1,3})\b/i);
+    const value = String(name || '');
+    const match = value.match(/\bx\s*(\d{1,3})\b/i) || value.match(/\b(\d{1,3})\s*(?:piezas?|unidades?|und\.?|u\.?\s*n\.?\s*d\.?)\b/i);
     const size = match ? Number(match[1]) : 1;
     return Number.isFinite(size) && size > 1 ? size : 1;
   };
@@ -26,7 +27,7 @@
   const costInput = $('newProductCost');
   if (costInput && !$('newProductPackSize')) {
     const label = document.createElement('label');
-    label.innerHTML = 'Unidades por paquete (si aplica)<input id="newProductPackSize" type="number" min="1" step="1" placeholder="Ej. 24"><small class="hint">Si el nombre incluye “x24”, Ruma lo propone automáticamente.</small>';
+    label.innerHTML = 'Unidades por paquete (si aplica)<input id="newProductPackSize" type="number" min="1" step="1" placeholder="Ej. 24"><small class="hint">Ruma lo propone si el nombre incluye “x24” o “24 piezas”.</small>';
     costInput.closest('label').before(label);
     const nameInput = $('newProductName');
     const packInput = $('newProductPackSize');
