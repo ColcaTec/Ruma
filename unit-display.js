@@ -7,13 +7,20 @@
     const size = match ? Number(match[1]) : 1;
     return Number.isFinite(size) && size > 1 ? size : 1;
   };
-  const packageSize = product => {
+  const packageInfo = product => {
     const explicit = Number(product.unitsPerPackage || 0);
-    return explicit > 1 ? explicit : inferPackSize(product.name);
+    if (explicit > 1) return { size: explicit, type: 'count', itemUnit: 'unidad', packUnit: 'paquete' };
+    const count = inferPackSize(product.name);
+    if (count > 1) return { size: count, type: 'count', itemUnit: 'unidad', packUnit: 'paquete' };
+    const weight = String(product.name || '').match(/(\d+(?:[.,]\d+)?)\s*(kg|g)\b/i);
+    if (weight) {
+      const value = Number(weight[1].replace(',', '.'));
+      const kg = weight[2].toLowerCase() === 'g' ? value / 1000 : value;
+      if (kg > 0) return { size: kg, type: 'weight', itemUnit: 'kg', packUnit: kg >= 25 ? 'saco' : 'bolsa' };
+    }
+    return { size: 1, type: 'single', itemUnit: String(product.unit || 'unidad'), packUnit: String(product.unit || 'unidad') };
   };
-  const isPack = product => packageSize(product) > 1;
-  const packageUnit = product => /^(unidad|und|u)$/i.test(String(product.unit || 'unidad')) ? 'paquete' : String(product.unit || 'paquete');
-  const unitName = product => /^(unidad|und|u)$/i.test(String(product.unit || 'unidad')) ? 'unidad' : String(product.unit || 'unidad');
+  const packageSize = product => packageInfo(product).size;
 
   // Add an explicit pack-size field to the existing product form.
   const costInput = $('newProductCost');
@@ -52,15 +59,16 @@
     const products = state.products.filter(product => product.name.toLocaleLowerCase('es-PE').includes(query) || (product.barcode || '').includes(query));
     $('productList').innerHTML = products.length ? products.map(product => {
       const stock = Number(product.stock || 0);
-      const size = packageSize(product);
-      const pack = size > 1;
+      const info = packageInfo(product);
+      const size = info.size;
+      const pack = info.type !== 'single';
       const eachCount = stock * size;
       const cost = Number(product.cost || 0);
       const detail = pack
-        ? `${esc(product.barcode || 'Sin código')} · ${money(cost)} / ${esc(packageUnit(product))} · ${money(cost / size)} / ${esc(unitName(product))}`
+        ? `${esc(product.barcode || 'Sin código')} · ${money(cost)} / ${esc(info.packUnit)} · ${money(cost / size)} / ${esc(info.itemUnit)}`
         : `${esc(product.barcode || 'Sin código')} · ${money(cost)} / ${esc(product.unit || 'unidad')}`;
       const stockInfo = pack
-        ? `<span class="row-total"><strong>${formatQty(eachCount)} unidades</strong><small>${formatQty(stock)} ${esc(packageUnit(product))}${Math.abs(stock) === 1 || packageUnit(product).endsWith('s') ? '' : 's'}</small></span>`
+        ? `<span class="row-total"><strong>${formatQty(eachCount)} ${esc(info.type === 'weight' ? info.itemUnit : 'unidades')}</strong><small>${formatQty(stock)} ${esc(info.packUnit)}${Math.abs(stock) === 1 || info.packUnit.endsWith('s') ? '' : 's'}</small></span>`
         : `<span class="row-total">${formatQty(stock)} ${esc(product.unit || 'unidad')}</span>`;
       return `<div class="product-row"><span class="row-icon">▦</span><span class="row-main"><strong>${esc(product.name)}</strong><small>${detail}</small></span>${stockInfo}</div>`;
     }).join('') : '<p class="empty-state">No hay productos todavía. Crea uno desde “+ Nuevo”.</p>';
@@ -71,7 +79,7 @@
     const render = window.render;
     const wrapped = function() {
       render();
-      const units = state.products.reduce((total, product) => total + Number(product.stock || 0) * packageSize(product), 0);
+      const units = state.products.reduce((total, product) => total + (packageInfo(product).type === 'weight' ? 0 : Number(product.stock || 0) * packageSize(product)), 0);
       if ($('stockCount')) $('stockCount').textContent = formatQty(units);
     };
     wrapped.__rumaPackWrapped = true;
@@ -79,7 +87,7 @@
   }
   renderProductsWithUnits();
   if (typeof window.render === 'function') {
-    const units = state.products.reduce((total, product) => total + Number(product.stock || 0) * packageSize(product), 0);
+    const units = state.products.reduce((total, product) => total + (packageInfo(product).type === 'weight' ? 0 : Number(product.stock || 0) * packageSize(product)), 0);
     if ($('stockCount')) $('stockCount').textContent = formatQty(units);
   }
   window.RumaUnits = { packageSize, inferPackSize };
