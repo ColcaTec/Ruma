@@ -9,3 +9,5 @@
 
 .barcode-entry{display:flex;align-items:center;gap:5px;margin-top:6px}.item-row .barcode-entry .item-barcode,.barcode-entry input{flex:1;min-width:0;margin-top:0}.barcode-scan-button{flex:none;border:1px solid #d8d4f1;border-radius:8px;background:#f6f4ff;color:var(--violet);padding:0 8px;height:43px;font:600 10px 'DM Sans';cursor:pointer}.barcode-scan-button:active{background:#ebe8ff}#barcodeScannerDialog{width:min(92vw,430px);border:1px solid var(--line);border-radius:18px;padding:18px;background:#fff}#barcodeScannerDialog::backdrop{background:#17152c99}.barcode-scan-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.barcode-scan-head h2{font:600 19px 'Space Grotesk';margin:0}.barcode-camera{display:block;width:100%;max-height:55vh;min-height:230px;object-fit:cover;background:#171717;border-radius:12px}.barcode-scan-head+.barcode-camera+.hint{min-height:34px}#barcodeScannerDialog [data-barcode-cancel]{width:100%;margin-top:8px}
 
+.row-total strong,.row-total small{display:block;text-align:right}.row-total small{margin-top:3px;font-size:10px;font-weight:500;color:var(--muted)}#productForm .hint{display:block;margin-top:4px}
+
