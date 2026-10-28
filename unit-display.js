@@ -72,13 +72,48 @@
       const wholePackages = Math.floor(stock + 1e-8);
       const looseUnits = info.type === 'count' ? Math.round((stock - wholePackages) * size) : 0;
       const packageDescription = `${wholePackages} ${info.packUnit}${wholePackages === 1 ? '' : 's'}${looseUnits > 0 ? ` + ${looseUnits} suelta${looseUnits === 1 ? '' : 's'}` : ''}`;
+      const editButton = `<button type="button" class="edit-stock-button" data-edit-stock="${esc(product.id)}">Editar cantidad</button>`;
       const stockInfo = pack
-        ? `<span class="row-total"><strong>${formatQty(eachCount)} ${esc(info.type === 'weight' ? info.itemUnit : 'unidades')}</strong><small>${esc(info.type === 'count' ? packageDescription : `${formatQty(stock)} ${info.packUnit}${Math.abs(stock) === 1 || info.packUnit.endsWith('s') ? '' : 's'}`)}</small></span>`
-        : `<span class="row-total">${formatQty(stock)} ${esc(product.unit || 'unidad')}</span>`;
+        ? `<span class="row-total"><strong>${formatQty(eachCount)} ${esc(info.type === 'weight' ? info.itemUnit : 'unidades')}</strong><small>${esc(info.type === 'count' ? packageDescription : `${formatQty(stock)} ${info.packUnit}${Math.abs(stock) === 1 || info.packUnit.endsWith('s') ? '' : 's'}`)}</small>${editButton}</span>`
+        : `<span class="row-total"><strong>${formatQty(stock)} ${esc(product.unit || 'unidad')}</strong>${editButton}</span>`;
       return `<div class="product-row"><span class="row-icon">▦</span><span class="row-main"><strong>${esc(product.name)}</strong><small>${detail}</small></span>${stockInfo}</div>`;
     }).join('') : '<p class="empty-state">No hay productos todavía. Crea uno desde “+ Nuevo”.</p>';
   }
 
+  const editDialog = $('stockEditDialog');
+  $('productList')?.addEventListener('click', event => {
+    const button = event.target.closest('[data-edit-stock]');
+    if (!button) return;
+    const product = state.products.find(item => item.id === button.dataset.editStock);
+    if (!product) return;
+    const info = packageInfo(product);
+    $('stockEditId').value = product.id;
+    $('stockEditProduct').textContent = product.name;
+    $('stockEditQuantity').value = String(Number(product.stock || 0) * info.size);
+    $('stockEditUnit').textContent = `Cantidad total en ${info.itemUnit}; puedes usar decimales para peso.`;
+    editDialog.showModal();
+    $('stockEditQuantity').focus();
+  });
+  const closeStockEdit = () => editDialog.close();
+  $('closeStockEdit').addEventListener('click', closeStockEdit);
+  $('cancelStockEdit').addEventListener('click', closeStockEdit);
+  $('stockEditForm').addEventListener('submit', event => {
+    event.preventDefault();
+    const product = state.products.find(item => item.id === $('stockEditId').value);
+    const quantity = Number($('stockEditQuantity').value);
+    if (!product || !Number.isFinite(quantity) || quantity < 0) return;
+    const info = packageInfo(product), size = Number(info.size) || 1;
+    const nextStock = quantity / size, previousStock = Number(product.stock || 0), difference = nextStock - previousStock;
+    if (difference < -1e-8 && typeof window.consumeLots === 'function') window.consumeLots(product, -difference);
+    if (difference > 1e-8) {
+      if (!Array.isArray(product.lots)) product.lots = [];
+      product.lots.push({ id: crypto.randomUUID(), receivedAt: new Date().toISOString().slice(0, 10), qty: difference, remaining: difference, cost: Number(product.cost || 0), expirationDate: '' });
+    }
+    product.stock = nextStock;
+    if (typeof window.saveState === 'function') window.saveState();
+    closeStockEdit();
+    window.toast?.('Cantidad actualizada y sincronizando tu inventario.');
+  });
   if (typeof window.renderProducts === 'function') window.renderProducts = renderProductsWithUnits;
   if (typeof window.render === 'function' && !window.render.__rumaPackWrapped) {
     const render = window.render;

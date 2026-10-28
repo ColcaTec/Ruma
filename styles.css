@@ -40,3 +40,4 @@
 .item-row>label:nth-of-type(5),.purchase-cart-row label:nth-of-type(5){grid-column:1;grid-row:4}
 .item-row>label:nth-of-type(6),.purchase-cart-row label:nth-of-type(6){grid-column:2;grid-row:4}
 .item-row>.remove-item,.purchase-cart-row>.remove-item{grid-column:3;grid-row:2/5;align-self:center}
+.edit-stock-button{display:block;margin:5px 0 0 auto;padding:4px 8px;border:1px solid #d8d4f1;border-radius:8px;background:#f6f4ff;color:var(--violet);font:600 10px 'DM Sans';cursor:pointer;white-space:nowrap}.edit-stock-button:active{background:#ebe8ff}#stockEditForm{display:grid;gap:14px;font-family:'DM Sans'}#stockEditForm>label{display:grid;gap:7px;font-weight:600}#stockEditForm input[type=number]{width:100%;min-height:50px;padding:0 13px;border:1px solid var(--line);border-radius:12px;font:inherit}.stock-edit-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:9px;margin-top:5px}.stock-edit-actions button{min-height:46px}
