@@ -7,7 +7,7 @@
   <meta name="description" content="Control sencillo de compras e inventario desde tu celular.">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=10">
+  <link rel="stylesheet" href="styles.css?v=11">
   <title>Ruma — Compras e inventario</title>
 </head>
 <body>
@@ -23,9 +23,19 @@
       <p class="muted">Inicia sesión para ver tus compras y existencias desde cualquier dispositivo.</p>
       <label>Correo electrónico<input name="email" type="email" autocomplete="username" required placeholder="tu@correo.com"></label>
       <label>Contraseña<input name="password" type="password" autocomplete="current-password" minlength="6" required placeholder="Mínimo 6 caracteres"></label>
+      <button id="forgotPasswordButton" class="text-button" type="button">Olvidé mi contraseña</button>
       <button class="primary-button" type="submit" name="mode" value="login">Iniciar sesión</button>
       <button class="secondary-button" type="submit" name="mode" value="signup">Crear cuenta</button>
       <p id="authStatus" class="hint" role="status" aria-live="polite"></p>
+    </form>
+    <form id="resetPasswordForm" class="auth-card" hidden>
+      <p class="eyebrow">RECUPERA TU ACCESO</p>
+      <h1 id="resetPasswordTitle">Nueva contraseña</h1>
+      <p class="muted">Elige una contraseña nueva para tu cuenta de Ruma.</p>
+      <label>Nueva contraseña<input name="newPassword" type="password" autocomplete="new-password" minlength="6" required placeholder="Mínimo 6 caracteres"></label>
+      <label>Repite la contraseña<input name="confirmPassword" type="password" autocomplete="new-password" minlength="6" required placeholder="Vuelve a escribirla"></label>
+      <button class="primary-button" type="submit">Guardar contraseña</button>
+      <p id="resetPasswordStatus" class="hint" role="status" aria-live="polite"></p>
     </form>
   </section>
   <main id="appMain" hidden>
@@ -67,11 +77,10 @@
   <nav id="sectionNav" class="section-nav" aria-label="Secciones" hidden><span class="nav-caption">TU ESPACIO</span><button class="nav-item selected" data-view="inicio"><span>01</span>Resumen</button><button class="nav-item" data-view="productos"><span>02</span>Productos</button><button class="nav-item" data-view="historial"><span>03</span>Movimientos</button></nav>
   <dialog id="productDialog"><form id="productForm" method="dialog"><div class="dialog-head"><h2>Nuevo producto</h2><button type="button" id="closeDialog" class="close-button">×</button></div><label>Nombre del producto<input id="newProductName" required placeholder="Ej. Arroz extra 1 kg"></label><label>Código de barras<input id="newProductBarcode" placeholder="Escanéalo o escríbelo"></label><div class="two-fields"><label>Unidad<input id="newProductUnit" value="unidad" placeholder="unidad, kg, caja"></label><label>Stock inicial<input id="newProductStock" type="number" min="0" step="any" value="0"></label></div><label>Costo unitario (S/)<input id="newProductCost" type="number" min="0" step="0.01" placeholder="0.00"></label><button class="primary-button">Guardar producto</button></form></dialog>
   <div id="toast" role="status" aria-live="polite"></div>
-  <script src="ruma-cloud.js?v=3"></script>
+  <script src="ruma-cloud.js?v=4"></script>
   <script src="app.js?v=8"></script>
   <script src="ocr-auth.js?v=10"></script>
   <script src="barcode-scan.js?v=9"></script>
   <script src="unit-display.js?v=12"></script>
 </body>
 </html>
-

@@ -12,7 +12,7 @@
 .row-total strong,.row-total small{display:block;text-align:right}.row-total small{margin-top:3px;font-size:10px;font-weight:500;color:var(--muted)}#productForm .hint{display:block;margin-top:4px}
 /* Account gate and cross-device sync */
 .auth-gate{min-height:calc(100dvh - 88px);padding:clamp(24px,7vw,88px) 20px;display:grid;place-items:center;background:var(--paper,#faf9f5)}
-.auth-gate[hidden],.account-controls[hidden],#appMain[hidden],#sectionNav[hidden]{display:none}
+.auth-gate[hidden],.auth-card[hidden],.account-controls[hidden],#appMain[hidden],#sectionNav[hidden]{display:none}
 .auth-card{width:min(100%,480px);padding:clamp(26px,6vw,48px);display:grid;gap:18px;background:#fff;border:1px solid #e8e5df;border-radius:28px;box-shadow:0 18px 50px #1c17400d}
 .auth-card h1{margin:0;font-size:clamp(32px,7vw,48px);line-height:1.05}
 .auth-card>p{margin:0}
@@ -26,4 +26,3 @@
 #syncStatus[data-state="error"]{color:#a43f35}
 #syncStatus[data-state="saved"]{color:#476d1a}
 @media(max-width:700px){.topbar{flex-wrap:wrap}.account-controls{order:3;width:100%;margin:0;padding:8px 0 0;justify-content:space-between;border-top:1px solid #ebe8e2}#accountEmail{max-width:130px}.account-controls .text-button{font-size:13px;padding:4px}}
-

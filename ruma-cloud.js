@@ -146,8 +146,10 @@
   function friendlyAuthError(error, mode) {
     const message = String(error?.message || error || '');
     if (/email rate limit exceeded|over_email_send_rate_limit/i.test(message)) {
+      if (mode === 'recovery') return 'Supabase alcanzó su límite gratuito de correos. Espera antes de volver a solicitar el enlace; sin SMTP, el envío también puede estar limitado a correos autorizados del proyecto.';
       return 'Se alcanzó el límite gratuito de correos de confirmación de Supabase (2 por hora). Revisa tu bandeja y spam; si no llegó ningún correo, espera una hora antes de volver a crear la cuenta. Para permitir más registros habrá que configurar un servicio SMTP propio.';
     }
+    if (/email address not authorized|email_address_not_authorized/i.test(message)) return 'Supabase no permite enviar correos a esta dirección con el servicio gratuito. Para recibir recuperación en Gmail hace falta configurar un remitente SMTP.';
     if (/already registered|user already exists/i.test(message)) return 'Ese correo ya tiene una cuenta. Prueba “Iniciar sesión”; si aún no la confirmaste, revisa el correo de verificación.';
     if (/invalid login credentials/i.test(message)) return 'El correo o la contraseña no coinciden. Si todavía no creaste la cuenta, pulsa “Crear cuenta”.';
     if (/redirect.*not allowed|not whitelisted/i.test(message)) return 'Supabase no tiene autorizada la dirección de Ruma para volver después de confirmar el correo. Hay que agregar https://colcatec.github.io/Ruma/ en Auth → URL Configuration.';
@@ -157,6 +159,64 @@
     const next = { ...data, expires_at: Math.floor(Date.now() / 1000) + Number(data.expires_in || 3600) };
     writeSession(next);
   }
+  const recoveryTokens = new URLSearchParams(location.hash.replace(/^#/, ''));
+  const recoveryAccessToken = recoveryTokens.get('access_token');
+  const recoveryType = recoveryTokens.get('type');
+  if (recoveryType === 'recovery' && recoveryAccessToken) {
+    $('authForm').hidden = true;
+    $('resetPasswordForm').hidden = false;
+    $('resetPasswordTitle').textContent = 'Nueva contraseña';
+  }
+  $('forgotPasswordButton').addEventListener('click', async () => {
+    const emailInput = $('authForm').elements.email;
+    const email = emailInput.value.trim();
+    if (!email) {
+      emailInput.focus();
+      formStatus('Escribe tu correo y luego pulsa “Olvidé mi contraseña”.');
+      return;
+    }
+    const button = $('forgotPasswordButton');
+    button.disabled = true;
+    formStatus('Solicitando el enlace de recuperación…');
+    try {
+      const redirect = `${location.origin}${location.pathname}`;
+      const endpoint = `recover?redirect_to=${encodeURIComponent(redirect)}`;
+      await authRequest(endpoint, { email });
+      formStatus('Si la cuenta existe, Supabase enviará un enlace de recuperación. Revisa también spam.');
+    } catch (error) {
+      formStatus(friendlyAuthError(error, 'recovery'));
+    } finally { button.disabled = false; }
+  });
+  $('resetPasswordForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const password = String(form.get('newPassword') || '');
+    const confirmation = String(form.get('confirmPassword') || '');
+    if (password !== confirmation) {
+      $('resetPasswordStatus').textContent = 'Las contraseñas no coinciden.';
+      return;
+    }
+    const button = event.currentTarget.querySelector('button[type="submit"]');
+    button.disabled = true;
+    $('resetPasswordStatus').textContent = 'Actualizando contraseña…';
+    try {
+      await parseResponse(await fetch(`${URL}/auth/v1/user`, {
+        method: 'PUT',
+        headers: { apikey: KEY, Authorization: `Bearer ${recoveryAccessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      }));
+      history.replaceState(null, '', `${location.pathname}${location.search}`);
+      event.currentTarget.reset();
+      event.currentTarget.hidden = true;
+      $('authForm').hidden = false;
+      formStatus('Contraseña actualizada. Ya puedes iniciar sesión con tu nueva contraseña.');
+      $('authForm').elements.email.focus();
+    } catch (error) {
+      $('resetPasswordStatus').textContent = /expired|invalid|token/i.test(error.message)
+        ? 'El enlace venció o ya se usó. Solicita otro enlace desde “Olvidé mi contraseña”.'
+        : error.message || 'No se pudo actualizar la contraseña.';
+    } finally { button.disabled = false; }
+  });
   $('authForm').addEventListener('submit', async event => {
     event.preventDefault();
     const submitter = event.submitter;
@@ -272,4 +332,3 @@
   }
   window.RumaCloud = { init, changed, signOut: () => $('signOutButton').click() };
 })();
-
