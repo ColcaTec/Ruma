@@ -78,7 +78,7 @@
     });
     return Number(result);
   }
-  function hasData(data) { return Boolean(data?.products?.length || data?.purchases?.length); }
+  function hasData(data) { return Boolean(data?.products?.length || data?.purchases?.length || data?.sales?.length); }
   function showApp() {
     $('authGate').hidden = true;
     $('appMain').hidden = false;

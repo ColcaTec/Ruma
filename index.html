@@ -7,7 +7,7 @@
   <meta name="description" content="Control sencillo de compras e inventario desde tu celular.">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=11">
+  <link rel="stylesheet" href="styles.css?v=12">
   <title>Ruma — Compras e inventario</title>
 </head>
 <body>
@@ -46,6 +46,7 @@
       <div class="action-grid">
         <button class="action-card photo-action" data-view="boleta"><span class="action-icon">01</span><span><strong>Vino en una boleta</strong><small>Fotografía, revisa y registra los detalles</small></span><span class="arrow">↗</span></button>
         <button class="action-card scan-action" data-view="escanear"><span class="action-icon">02</span><span><strong>Ya lo tienes en catálogo</strong><small>Escanea, ingresa cantidad y costo</small></span><span class="arrow">↗</span></button>
+        <button class="action-card sale-action" data-view="vender"><span class="action-icon">03</span><span><strong>Registrar una venta</strong><small>Escanea o busca productos y descuéntalos del stock</small></span><span class="arrow">↗</span></button>
       </div>
       <div class="recent-head"><div class="section-kicker"><span>02</span><h2 class="section-title">Actividad reciente</h2></div><button class="text-button" data-view="historial">Ver todo ↗</button></div>
       <div id="recentPurchases" class="purchase-list"></div>
@@ -71,14 +72,21 @@
       <div class="form-card"><div class="form-heading"><h2>Productos de esta compra</h2></div><div id="cartItems"><p class="empty-state">Aún no agregas productos.</p></div><label>Proveedor<input id="scanSupplier" placeholder="Opcional"></label><label>Fecha<input id="scanDate" type="date"></label><button id="saveScanPurchase" class="primary-button" disabled>Guardar compra</button></div>
     </section>
 
+    <section id="vender" class="view">
+      <button class="back-button" data-view="inicio">← Inicio</button><p class="eyebrow">NUEVA VENTA</p><h1>Registrar venta</h1><p class="muted">Busca o escanea productos del catálogo. Al guardar, las cantidades se descuentan del stock.</p>
+      <div class="scanner-card"><video id="saleCameraVideo" playsinline muted hidden></video><div id="saleScannerPlaceholder" class="scanner-placeholder"><span>▥</span><small>Apunta la cámara al código de barras</small></div><button id="startSaleScanner" class="secondary-button">Escanear producto</button><button id="stopSaleScanner" class="secondary-button" hidden>Detener cámara</button></div>
+      <div class="manual-code"><label for="saleProductSearch">O busca por nombre o código</label><input id="saleProductSearch" placeholder="Escribe para buscar en el catálogo" autocomplete="off"><div id="saleSearchResults" class="sale-search-results"></div></div>
+      <div class="form-card"><h2>Productos de la venta</h2><div id="saleCartItems"><p class="empty-state">Aún no agregas productos.</p></div><label>Cliente (opcional)<input id="saleCustomer" placeholder="Nombre del cliente"></label><label>Fecha<input id="saleDate" type="date"></label><p class="sale-total">Total <strong id="saleTotal">S/ 0.00</strong></p><button id="saveSale" class="primary-button" disabled>Guardar venta y descontar stock</button></div>
+    </section>
+
     <section id="productos" class="view"><button class="back-button" data-view="inicio">← Inicio</button><p class="eyebrow">TU CATÁLOGO</p><h1>Productos</h1><div class="input-row search-row"><input id="productSearch" placeholder="Buscar por nombre o código"><button id="newProduct" class="secondary-button">+ Nuevo</button></div><div id="productList" class="product-list"></div></section>
-    <section id="historial" class="view"><button class="back-button" data-view="inicio">← Inicio</button><p class="eyebrow">MOVIMIENTOS</p><h1>Historial de compras</h1><div id="purchaseHistory" class="purchase-list"></div></section>
+    <section id="historial" class="view"><button class="back-button" data-view="inicio">← Inicio</button><p class="eyebrow">MOVIMIENTOS</p><h1>Historial de movimientos</h1><div id="purchaseHistory" class="purchase-list"></div></section>
   </main>
   <nav id="sectionNav" class="section-nav" aria-label="Secciones" hidden><span class="nav-caption">TU ESPACIO</span><button class="nav-item selected" data-view="inicio"><span>01</span>Resumen</button><button class="nav-item" data-view="productos"><span>02</span>Productos</button><button class="nav-item" data-view="historial"><span>03</span>Movimientos</button></nav>
-  <dialog id="productDialog"><form id="productForm" method="dialog"><div class="dialog-head"><h2>Nuevo producto</h2><button type="button" id="closeDialog" class="close-button">×</button></div><label>Nombre del producto<input id="newProductName" required placeholder="Ej. Arroz extra 1 kg"></label><label>Código de barras<input id="newProductBarcode" placeholder="Escanéalo o escríbelo"></label><div class="two-fields"><label>Unidad<input id="newProductUnit" value="unidad" placeholder="unidad, kg, caja"></label><label>Stock inicial<input id="newProductStock" type="number" min="0" step="any" value="0"></label></div><label>Costo unitario (S/)<input id="newProductCost" type="number" min="0" step="0.01" placeholder="0.00"></label><button class="primary-button">Guardar producto</button></form></dialog>
+  <dialog id="productDialog"><form id="productForm" method="dialog"><div class="dialog-head"><h2>Nuevo producto</h2><button type="button" id="closeDialog" class="close-button">×</button></div><label>Nombre del producto<input id="newProductName" required placeholder="Ej. Arroz extra 1 kg"></label><label>Código de barras<input id="newProductBarcode" placeholder="Escanéalo o escríbelo"></label><div class="two-fields"><label>Unidad<input id="newProductUnit" value="unidad" placeholder="unidad, kg, caja"></label><label>Stock inicial<input id="newProductStock" type="number" min="0" step="any" value="0"></label></div><label>Costo unitario (S/)<input id="newProductCost" type="number" min="0" step="0.01" placeholder="0.00"></label><label>Precio de venta sugerido (S/)<input id="newProductSalePrice" type="number" min="0" step="0.01" placeholder="Opcional"></label><button class="primary-button">Guardar producto</button></form></dialog>
   <div id="toast" role="status" aria-live="polite"></div>
-  <script src="ruma-cloud.js?v=4"></script>
-  <script src="app.js?v=8"></script>
+  <script src="ruma-cloud.js?v=5"></script>
+  <script src="app.js?v=9"></script>
   <script src="ocr-auth.js?v=10"></script>
   <script src="barcode-scan.js?v=9"></script>
   <script src="unit-display.js?v=12"></script>
