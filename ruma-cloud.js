@@ -109,9 +109,21 @@
       localStorage.setItem('ruma_legacy_inventory_owner_v1', user.id);
     }
     if (row) {
+      if (hasData(local) && !hasData(row.data)) {
+        await applyCloudData(local, row.revision);
+        showApp();
+        stateLabel('Inventario de este dispositivo pendiente de subir', 'error');
+        const count = local.products?.length || 0;
+        if (confirm(`Encontré ${count} producto${count === 1 ? '' : 's'} guardado${count === 1 ? '' : 's'} en este dispositivo. La nube está vacía. ¿Quieres importarlo a tu cuenta Ruma?`)) await importLocal(false);
+        return;
+      }
+      const hasSeparateCopy = hasData(local) && hasData(row.data) && JSON.stringify(local) !== JSON.stringify(row.data);
+      if (hasSeparateCopy) {
+        localStorage.setItem(`ruma_legacy_backup_${businessId}_v1`, JSON.stringify(local));
+      }
       await applyCloudData(row.data, row.revision);
       showApp();
-      stateLabel('Sincronizado', 'saved');
+      stateLabel(hasSeparateCopy ? 'La nube ya tiene datos; una copia diferente de este dispositivo quedó guardada por separado' : 'Sincronizado', hasSeparateCopy ? 'error' : 'saved');
       return;
     }
     revision = 0;
