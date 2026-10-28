@@ -159,7 +159,14 @@
     if (!response.ok) {
       if (result.error === 'sin_clave_gemini') throw new Error('Falta configurar GEMINI_API_KEY en los secretos de Supabase.');
       if (result.error === 'gemini' && result.status === 503) throw new Error('Gemini está temporalmente saturado (503). La función ya reintentó el análisis; espera un momento y vuelve a leer la boleta.');
-      if (result.error === 'gemini' && result.status === 429) throw new Error('Gemini alcanzó el límite de solicitudes. Espera un momento y vuelve a intentarlo.');
+      if (result.error === 'gemini' && result.status === 429) {
+        let detail = '';
+        try { const parsed = JSON.parse(result.detail || '{}'); detail = parsed.error?.message || parsed.message || ''; } catch { detail = result.detail || ''; }
+        detail = String(detail).replace(/\s+/g, ' ').slice(0, 220);
+        if (/per.?day|daily|requestsperday|quota exceeded/i.test(detail)) throw new Error(`La cuota diaria de Gemini está agotada. Revisa los límites o la facturación de Google AI Studio antes de volver a escanear. ${detail}`);
+        if (detail) throw new Error(`Gemini limitó esta solicitud. Si indica límite por minuto, espera y reintenta; si indica cuota diaria o facturación, habrá que revisar Google AI Studio. ${detail}`);
+        throw new Error('Gemini alcanzó el límite de solicitudes. Revisa los límites o la facturación de Google AI Studio antes de volver a intentarlo.');
+      }
       if (result.error === 'gemini') throw new Error(`Gemini respondió con error ${result.status || ''}. Revisa la clave y el modelo en Supabase.`);
       throw new Error(result.detail || result.error || 'No se pudo analizar esta foto.');
     }
