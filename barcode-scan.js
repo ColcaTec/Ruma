@@ -44,11 +44,15 @@
     if (product && row) {
       row.querySelector('.item-name').value = product.name;
       row.querySelector('.item-cost').value = product.cost ?? '';
+      const salePrice = row.querySelector('.item-sale-price');
+      if (salePrice) salePrice.value = product.salePrice ?? '';
     }
     if (product && targetInput.id === 'newProductBarcode') {
       document.getElementById('newProductName').value = product.name;
       document.getElementById('newProductCost').value = product.cost ?? '';
       document.getElementById('newProductUnit').value = product.unit || 'unidad';
+      const salePrice = document.getElementById('newProductSalePrice');
+      if (salePrice) salePrice.value = product.salePrice ?? '';
     }
     if (typeof toast === 'function') toast(product ? `Código reconocido: ${product.name}` : `Código reconocido: ${code}`);
     scannerDialog.close();
@@ -147,4 +151,3 @@
     }
   }
 })();
-
