@@ -13,7 +13,8 @@
     if (explicit > 1) return { size: explicit, type: 'count', itemUnit: 'unidad', packUnit: 'paquete' };
     const count = inferPackSize(product.name);
     if (count > 1) return { size: count, type: 'count', itemUnit: 'unidad', packUnit: 'paquete' };
-    const weight = String(product.name || '').match(/(\d+(?:[.,]\d+)?)\s*(kg|g)\b/i);
+    // Small gram-denominated retail packages (e.g. 75 g cookies) are counted as individual items.
+    const weight = String(product.name || '').match(/(\d+(?:[.,]\d+)?)\s*(kg)\b/i);
     if (weight) {
       const value = Number(weight[1].replace(',', '.'));
       const kg = weight[2].toLowerCase() === 'g' ? value / 1000 : value;
