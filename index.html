@@ -7,7 +7,7 @@
   <meta name="description" content="Control sencillo de compras e inventario desde tu celular.">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=21">
+  <link rel="stylesheet" href="styles.css?v=22">
   <title>Ruma — Compras e inventario</title>
 </head>
 <body>
@@ -60,7 +60,7 @@
       </div>
       <div id="receiptPreviewWrap" class="preview-wrap" hidden><img id="receiptPreview" alt="Vista previa de la boleta"><div id="receiptImagesPreview" class="receipt-images-preview"></div><button id="readReceipt" class="secondary-button">Leer boleta</button><p id="ocrStatus" class="hint"></p><details id="ocrDetails" hidden><summary>Ver texto leído</summary><pre id="ocrText"></pre></details></div>
       <div class="form-card"><h2>Datos de la compra</h2><label>Empresa o proveedor<input id="receiptSupplier" placeholder="Ej. Distribuidora San José"></label><label>Fecha<input id="receiptDate" type="date"></label></div>
-      <div class="form-card"><div class="form-heading"><h2>Productos de la boleta</h2><button id="addReceiptItem" class="text-button">+ Agregar</button></div><p class="hint">Registra paquetes y piezas adicionales en “Unid. sueltas extra”. Ruma calculará las unidades compradas, las de regalo, el costo unitario y el total. Si la boleta repite un producto gratis, intentará unirlo automáticamente.</p><div id="receiptItems"></div></div>
+      <div class="form-card"><div class="form-heading"><h2>Productos de la boleta</h2><button id="addReceiptItem" class="text-button">+ Agregar</button></div><p class="hint">Revisa los datos reconocidos. Ruma completará código y unidades por paquete si identifica el producto en tu catálogo. Vencimiento y precio de venta solo se llenan si aparecen en la boleta; si no, quedan vacíos. Ingresa las piezas adicionales en “Unid. sueltas extra”.</p><div id="receiptItems"></div></div>
       <button id="saveReceipt" class="primary-button">Guardar compra</button>
     </section>
 
@@ -90,7 +90,7 @@
   <div id="toast" role="status" aria-live="polite"></div>
   <script src="ruma-cloud.js?v=9"></script>
   <script src="app.js?v=23"></script>
-  <script src="receipt-details.js?v=1"></script>
+  <script src="receipt-details.js?v=2"></script>
   <script src="ocr-auth.js?v=10"></script>
   <script src="barcode-scan.js?v=12"></script>
   <script src="unit-display.js?v=16"></script>
