@@ -103,7 +103,10 @@
     if (!active) return;
     status.textContent = 'Enfoca el código dentro de la cámara…';
     const reader = new ZXing.BrowserMultiFormatReader();
-    await reader.decodeFromVideoDevice(undefined, video, (result, _error, controls) => {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+    if (!active) { stream.getTracks().forEach(track => track.stop()); stream = null; return; }
+    await window.RumaEnableTorch?.(stream);
+    zxingControls = await reader.decodeFromStream(stream, video, (result, _error, controls) => {
       if (controls) zxingControls = controls;
       if (result && active) applyBarcode(result.getText());
     });
@@ -125,6 +128,7 @@
         if (scanFormats.length) {
           const detector = new BarcodeDetector({ formats: scanFormats });
           stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+          await window.RumaEnableTorch?.(stream);
           video.srcObject = stream;
           await video.play();
           status.textContent = 'Enfoca el código dentro de la cámara…';
