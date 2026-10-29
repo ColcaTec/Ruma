@@ -9,10 +9,12 @@
 
   const scannerDialog = document.createElement('dialog');
   scannerDialog.id = 'barcodeScannerDialog';
-  scannerDialog.innerHTML = '<div class="barcode-scan-head"><h2>Escanear código</h2><button type="button" class="close-button" aria-label="Cerrar">×</button></div><video playsinline muted class="barcode-camera"></video><p class="hint" data-barcode-status>Apunta la cámara al código de barras.</p><button type="button" class="secondary-button" data-barcode-cancel>Cancelar</button>';
+  scannerDialog.innerHTML = '<div class="barcode-scan-head"><h2>Escanear código</h2><button type="button" class="close-button" aria-label="Cerrar">×</button></div><video playsinline muted class="barcode-camera"></video><p class="hint" data-barcode-status>Apunta la cámara al código de barras.</p><button type="button" class="secondary-button flash-toggle" data-barcode-flash hidden>⚡ Encender flash</button><button type="button" class="secondary-button" data-barcode-cancel>Cancelar</button>';
   document.body.append(scannerDialog);
   const video = scannerDialog.querySelector('video');
   const status = scannerDialog.querySelector('[data-barcode-status]');
+  const flashButton = scannerDialog.querySelector('[data-barcode-flash]');
+  let torchOn = false;
 
   function stopScanner() {
     active = false;
@@ -22,6 +24,9 @@
     zxingControls = null;
     stream?.getTracks().forEach(track => track.stop());
     stream = null;
+    torchOn = false;
+    flashButton.hidden = true;
+    flashButton.textContent = '⚡ Encender flash';
     video.srcObject = null;
   }
 
@@ -29,6 +34,17 @@
   scannerDialog.querySelector('.close-button').onclick = () => scannerDialog.close();
   scannerDialog.querySelector('[data-barcode-cancel]').onclick = () => scannerDialog.close();
   scannerDialog.addEventListener('click', event => { if (event.target === scannerDialog) scannerDialog.close(); });
+  flashButton.onclick = async () => {
+    const next = !torchOn;
+    try {
+      if (zxingControls?.switchTorch) await zxingControls.switchTorch(next);
+      else if (!await window.RumaSetTorch?.(stream, next)) throw new Error('flash no disponible');
+      torchOn = next;
+      flashButton.textContent = next ? '⚡ Apagar flash' : '⚡ Encender flash';
+    } catch {
+      status.textContent = 'El navegador no permite controlar el flash. Toca el icono de flash tachado en la cámara y elige “Encendido”.';
+    }
+  };
 
   function catalogMatch(code) {
     if (typeof state === 'undefined') return null;
@@ -105,11 +121,16 @@
     const reader = new ZXing.BrowserMultiFormatReader();
     stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
     if (!active) { stream.getTracks().forEach(track => track.stop()); stream = null; return; }
-    await window.RumaEnableTorch?.(stream);
+    torchOn = await window.RumaEnableTorch?.(stream) || false;
     zxingControls = await reader.decodeFromStream(stream, video, (result, _error, controls) => {
       if (controls) zxingControls = controls;
       if (result && active) applyBarcode(result.getText());
     });
+    if (zxingControls?.switchTorch) {
+      try { await zxingControls.switchTorch(true); torchOn = true; } catch {}
+    }
+    flashButton.hidden = false;
+    flashButton.textContent = torchOn ? '⚡ Apagar flash' : '⚡ Encender flash';
   }
 
   async function startScanner(input) {
@@ -128,9 +149,11 @@
         if (scanFormats.length) {
           const detector = new BarcodeDetector({ formats: scanFormats });
           stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
-          await window.RumaEnableTorch?.(stream);
           video.srcObject = stream;
           await video.play();
+          torchOn = await window.RumaEnableTorch?.(stream) || false;
+          flashButton.hidden = false;
+          flashButton.textContent = torchOn ? '⚡ Apagar flash' : '⚡ Encender flash';
           status.textContent = 'Enfoca el código dentro de la cámara…';
           const scan = async () => {
             if (!active) return;

@@ -7,7 +7,7 @@
   <meta name="description" content="Control sencillo de compras e inventario desde tu celular.">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=19">
+  <link rel="stylesheet" href="styles.css?v=20">
   <title>Ruma — Compras e inventario</title>
 </head>
 <body>
@@ -66,7 +66,7 @@
 
     <section id="escanear" class="view">
       <button class="back-button" data-view="inicio">← Inicio</button><p class="eyebrow">NUEVA COMPRA</p><h1>Agregar productos</h1><p class="muted">Escanea con la cámara o búscalos por nombre en tu catálogo.</p>
-      <div class="scanner-card"><video id="cameraVideo" playsinline muted hidden></video><div id="scannerPlaceholder" class="scanner-placeholder"><span>▥</span><small>Apunta la cámara al código de barras</small></div><button id="startScanner" class="primary-button">Abrir cámara</button><button id="stopScanner" class="secondary-button" hidden>Detener cámara</button></div>
+      <div class="scanner-card"><video id="cameraVideo" playsinline muted hidden></video><div id="scannerPlaceholder" class="scanner-placeholder"><span>▥</span><small>Apunta la cámara al código de barras</small></div><button id="startScanner" class="primary-button">Abrir cámara</button><button id="toggleScanFlash" class="secondary-button flash-toggle" hidden>⚡ Encender flash</button><button id="stopScanner" class="secondary-button" hidden>Detener cámara</button></div>
       <div class="manual-code"><label for="scanProductSearch">Buscar producto por nombre</label><input id="scanProductSearch" placeholder="Escribe el nombre del producto" autocomplete="off"><div id="scanSearchResults" class="sale-search-results"></div><small id="scannerHint" class="hint">Busca productos de tu catálogo y del catálogo compartido. El costo de compra lo ingresas para tu negocio.</small></div>
       <div id="selectedProduct" class="form-card" hidden></div>
       <div class="form-card"><div class="form-heading"><h2>Productos de esta compra</h2></div><div id="cartItems"><p class="empty-state">Aún no agregas productos.</p></div><label>Proveedor<input id="scanSupplier" placeholder="Opcional"></label><label>Fecha<input id="scanDate" type="date"></label><button id="saveScanPurchase" class="primary-button" disabled>Guardar compra</button></div>
@@ -74,7 +74,7 @@
 
     <section id="vender" class="view">
       <button class="back-button" data-view="inicio">← Inicio</button><p class="eyebrow">NUEVA VENTA</p><h1>Registrar venta</h1><p class="muted">Busca o escanea productos del catálogo. Al guardar, las cantidades se descuentan del stock.</p>
-      <div class="scanner-card"><video id="saleCameraVideo" playsinline muted hidden></video><div id="saleScannerPlaceholder" class="scanner-placeholder"><span>▥</span><small>Apunta la cámara al código de barras</small></div><button id="startSaleScanner" class="secondary-button">Escanear producto</button><button id="stopSaleScanner" class="secondary-button" hidden>Detener cámara</button></div>
+      <div class="scanner-card"><video id="saleCameraVideo" playsinline muted hidden></video><div id="saleScannerPlaceholder" class="scanner-placeholder"><span>▥</span><small>Apunta la cámara al código de barras</small></div><button id="startSaleScanner" class="secondary-button">Escanear producto</button><button id="toggleSaleFlash" class="secondary-button flash-toggle" hidden>⚡ Encender flash</button><button id="stopSaleScanner" class="secondary-button" hidden>Detener cámara</button></div>
       <div class="manual-code"><label for="saleProductSearch">O busca por nombre o código</label><input id="saleProductSearch" placeholder="Escribe para buscar en el catálogo" autocomplete="off"><div id="saleSearchResults" class="sale-search-results"></div></div>
       <div class="form-card"><h2>Productos de la venta</h2><div id="saleCartItems"><p class="empty-state">Aún no agregas productos.</p></div><label>Cliente (opcional)<input id="saleCustomer" placeholder="Nombre del cliente"></label><label>Fecha<input id="saleDate" type="date"></label><p class="sale-total">Total <strong id="saleTotal">S/ 0.00</strong></p><button id="saveSale" class="primary-button" disabled>Guardar venta y descontar stock</button></div>
     </section>
@@ -89,9 +89,9 @@
   <dialog id="movementDetailDialog" class="movement-detail-dialog"><div id="movementDetailContent"></div></dialog>
   <div id="toast" role="status" aria-live="polite"></div>
   <script src="ruma-cloud.js?v=7"></script>
-  <script src="app.js?v=20"></script>
+  <script src="app.js?v=21"></script>
   <script src="ocr-auth.js?v=10"></script>
-  <script src="barcode-scan.js?v=11"></script>
+  <script src="barcode-scan.js?v=12"></script>
   <script src="unit-display.js?v=16"></script>
 </body>
 </html>
