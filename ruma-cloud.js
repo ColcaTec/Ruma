@@ -11,6 +11,9 @@
   let pending = false;
   let pendingData = null;
   let changeVersion = 0;
+  let catalogSyncTimer = null;
+  let catalogSyncRunning = false;
+  let catalogSyncPending = new Map();
 
   const $ = id => document.getElementById(id);
   const stateLabel = (text, state = '') => {
@@ -79,11 +82,70 @@
     return Number(result);
   }
   function hasData(data) { return Boolean(data?.products?.length || data?.purchases?.length || data?.sales?.length); }
+  function sharedProductPayload(product) {
+    const name = String(product?.name || '').trim();
+    if (name.length < 2) return null;
+    const barcode = String(product?.barcode || '').trim();
+    const unit = String(product?.unit || 'unidad').trim() || 'unidad';
+    const inferred = name.match(/\bx\s*(\d{1,3})\b/i) || name.match(/\b(\d{1,3})\s*(?:piezas?|unidades?|und\.?)\b/i);
+    const explicitSize = Number(product?.unitsPerPackage) || 0;
+    const unitsPerPackage = Math.max(1, explicitSize > 1 ? explicitSize : (inferred ? Number(inferred[1]) : 1));
+    const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es-PE');
+    const barcodeKey = normalize(barcode).replace(/[^a-z0-9]/g, '');
+    const nameKey = normalize(name).replace(/[^a-z0-9]+/g, ' ').trim();
+    return { name, barcode, unit, unitsPerPackage, key: barcodeKey ? `barcode:${barcodeKey}` : `name:${nameKey}` };
+  }
+  function sharedCatalogCacheKey() { return `ruma_shared_catalog_published_${businessId}_v1`; }
+  function getSharedCatalogCache() {
+    try { return JSON.parse(localStorage.getItem(sharedCatalogCacheKey()) || '{}'); } catch { return {}; }
+  }
+  function cacheSharedProduct(product) {
+    const payload = sharedProductPayload(product);
+    if (!payload || !businessId) return;
+    const cache = getSharedCatalogCache();
+    cache[payload.key] = JSON.stringify([payload.name, payload.barcode, payload.unit, payload.unitsPerPackage]);
+    localStorage.setItem(sharedCatalogCacheKey(), JSON.stringify(cache));
+  }
+  function queueSharedCatalogSync(products) {
+    if (!session || !businessId || !Array.isArray(products)) return;
+    const cache = getSharedCatalogCache();
+    for (const product of products) {
+      const payload = sharedProductPayload(product);
+      if (!payload) continue;
+      const signature = JSON.stringify([payload.name, payload.barcode, payload.unit, payload.unitsPerPackage]);
+      if (cache[payload.key] !== signature) catalogSyncPending.set(payload.key, { payload, signature });
+    }
+    clearTimeout(catalogSyncTimer);
+    catalogSyncTimer = setTimeout(syncSharedCatalogQueue, 100);
+  }
+  async function syncSharedCatalogQueue() {
+    if (catalogSyncRunning || !catalogSyncPending.size || !session || !businessId) return;
+    catalogSyncRunning = true;
+    let hadFailure = false;
+    try {
+      while (catalogSyncPending.size) {
+        const batch = [...catalogSyncPending.entries()].slice(0, 8);
+        batch.forEach(([key]) => catalogSyncPending.delete(key));
+        const results = await Promise.allSettled(batch.map(([, item]) => publishSharedProduct(item.payload)));
+        const cache = getSharedCatalogCache();
+        results.forEach((result, index) => {
+          if (result.status === 'fulfilled') cache[batch[index][0]] = batch[index][1].signature;
+          else hadFailure = true;
+        });
+        localStorage.setItem(sharedCatalogCacheKey(), JSON.stringify(cache));
+      }
+    } finally {
+      catalogSyncRunning = false;
+      if (hadFailure) stateLabel('Inventario sincronizado; no se pudo actualizar el catálogo compartido', 'error');
+      if (catalogSyncPending.size) catalogSyncTimer = setTimeout(syncSharedCatalogQueue, 1000);
+    }
+  }
   function showApp() {
     $('authGate').hidden = true;
     $('appMain').hidden = false;
     $('sectionNav').hidden = false;
     $('accountControls').hidden = false;
+    queueSharedCatalogSync(app?.getLocalData()?.products || []);
   }
   function showGate() {
     $('authGate').hidden = false;
@@ -276,6 +338,7 @@
   function changed(data) {
     if (!session || !businessId) return;
     localStorage.setItem(`ruma_inventory_${businessId}_v1`, JSON.stringify(data));
+    queueSharedCatalogSync(data?.products || []);
     pendingData = data;
     changeVersion++;
     pending = true;
@@ -339,10 +402,13 @@
     return Array.isArray(rows) ? rows : [];
   }
   async function publishSharedProduct(product) {
+    const payload = sharedProductPayload(product);
+    if (!payload) throw new Error('El nombre del producto no es válido para compartirlo.');
     const rows = await api('rpc/ruma_publish_shared_product', { method: 'POST', body: JSON.stringify({
-      p_name: product.name, p_barcode: product.barcode || null, p_unit: product.unit || 'unidad',
-      p_units_per_package: Number(product.unitsPerPackage) || 1,
+      p_name: payload.name, p_barcode: payload.barcode || null, p_unit: payload.unit,
+      p_units_per_package: payload.unitsPerPackage,
     }) });
+    cacheSharedProduct(payload);
     return Array.isArray(rows) ? rows[0] : rows;
   }
   window.RumaCloud = { init, changed, searchSharedProducts, publishSharedProduct, signOut: () => $('signOutButton').click() };
