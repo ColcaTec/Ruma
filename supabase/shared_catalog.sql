@@ -23,10 +23,11 @@ revoke all on table public.shared_catalog_products from anon, authenticated;
 -- Import only public product identifiers from existing private inventory snapshots.
 with source as (
   select
-    product->>'name' as name,
-    nullif(btrim(product->>'barcode'), '') as barcode,
-    coalesce(nullif(btrim(product->>'unit'), ''), 'unidad') as unit,
-    case
+    btrim(product->>'name') as name,
+    case when char_length(nullif(btrim(product->>'barcode'), '')) <= 64
+      then nullif(btrim(product->>'barcode'), '') else null end as barcode,
+    left(coalesce(nullif(btrim(product->>'unit'), ''), 'unidad'),24) as unit,
+    greatest(1,least(case
       when (product->>'unitsPerPackage') ~ '^\d+(\.\d+)?$' and (product->>'unitsPerPackage')::numeric > 1
         then (product->>'unitsPerPackage')::numeric
       when coalesce(product->>'name','') ~* '\bx\s*[0-9]{1,3}\b'
@@ -34,11 +35,11 @@ with source as (
       when coalesce(product->>'name','') ~* '\b[0-9]{1,3}\s*(piezas?|unidades?|und\.?|u\.?\s*n\.?\s*d\.?)\b'
         then substring(product->>'name' from '(?i)\b([0-9]{1,3})\s*(piezas?|unidades?|und\.?|u\.?\s*n\.?\s*d\.?)\b')::numeric
       else 1::numeric
-    end as units_per_package,
+    end,100000)) as units_per_package,
     snapshot.updated_at
   from public.inventory_snapshots as snapshot
   cross join lateral jsonb_array_elements(coalesce(snapshot.data->'products','[]'::jsonb)) as products(product)
-  where nullif(btrim(product->>'name'),'') is not null
+  where char_length(btrim(coalesce(product->>'name',''))) between 2 and 120
 ), normalized as (
   select *,
     trim(regexp_replace(translate(lower(btrim(name)), 'áéíóúüñ', 'aeiouun'), '[^a-z0-9]+', ' ', 'g')) as name_norm,
@@ -118,3 +119,80 @@ revoke all on function public.ruma_search_shared_products(text) from public,anon
 revoke all on function public.ruma_publish_shared_product(text,text,text,numeric) from public,anon;
 grant execute on function public.ruma_search_shared_products(text) to authenticated;
 grant execute on function public.ruma_publish_shared_product(text,text,text,numeric) to authenticated;
+
+-- Keep the shared search index in sync whenever any account saves its inventory.
+-- The trigger copies product identifiers only; private stock and transaction
+-- fields remain inside inventory_snapshots.data and are never written here.
+create or replace function public.ruma_sync_shared_catalog_from_snapshot()
+returns trigger
+language plpgsql security definer set search_path=''
+as $$
+declare
+  product jsonb;
+  n text;
+  b text;
+  u text;
+  size numeric;
+  n_norm text;
+  b_norm text;
+  product_key text;
+begin
+  for product in
+    select value
+    from jsonb_array_elements(coalesce(new.data->'products','[]'::jsonb)) as entries(value)
+  loop
+    n:=btrim(coalesce(product->>'name',''));
+    if char_length(n)<2 or char_length(n)>120 then continue; end if;
+
+    b:=nullif(btrim(coalesce(product->>'barcode','')),'');
+    if char_length(coalesce(b,''))>64 then b:=null; end if;
+    u:=coalesce(nullif(btrim(product->>'unit'),''),'unidad');
+    if char_length(u)>24 then u:=left(u,24); end if;
+
+    size:=null;
+    if coalesce(product->>'unitsPerPackage','') ~ '^\d+(\.\d+)?$' then
+      size:=(product->>'unitsPerPackage')::numeric;
+    end if;
+    if coalesce(size,1)<=1 then
+      if n ~* '\bx\s*[0-9]{1,3}\b' then
+        size:=substring(n from '(?i)\bx\s*([0-9]{1,3})\b')::numeric;
+      elsif n ~* '\b[0-9]{1,3}\s*(piezas?|unidades?|und\.?|u\.?\s*n\.?\s*d\.?)\b' then
+        size:=substring(n from '(?i)\b([0-9]{1,3})\s*(piezas?|unidades?|und\.?|u\.?\s*n\.?\s*d\.?)\b')::numeric;
+      end if;
+    end if;
+    size:=greatest(1,least(coalesce(size,1),100000));
+
+    n_norm:=trim(regexp_replace(translate(lower(n),'áéíóúüñ','aeiouun'),'[^a-z0-9]+',' ','g'));
+    if n_norm='' then continue; end if;
+    b_norm:=nullif(regexp_replace(lower(coalesce(b,'')),'[^a-z0-9]','','g'),'');
+    product_key:=coalesce('barcode:'||b_norm,'name:'||n_norm);
+
+    insert into public.shared_catalog_products as existing_row(
+      catalog_key,normalized_name,normalized_barcode,name,barcode,unit,units_per_package,updated_by
+    ) values (
+      product_key,n_norm,b_norm,n,b,u,size,(select auth.uid())
+    )
+    on conflict(catalog_key) do update set
+      normalized_name=excluded.normalized_name,
+      normalized_barcode=excluded.normalized_barcode,
+      name=excluded.name,
+      barcode=excluded.barcode,
+      unit=excluded.unit,
+      units_per_package=excluded.units_per_package,
+      updated_at=now(),
+      updated_by=excluded.updated_by
+    where existing_row.normalized_name is distinct from excluded.normalized_name
+       or existing_row.normalized_barcode is distinct from excluded.normalized_barcode
+       or existing_row.name is distinct from excluded.name
+       or existing_row.barcode is distinct from excluded.barcode
+       or existing_row.unit is distinct from excluded.unit
+       or existing_row.units_per_package is distinct from excluded.units_per_package;
+  end loop;
+  return new;
+end; $$;
+
+revoke all on function public.ruma_sync_shared_catalog_from_snapshot() from public,anon,authenticated;
+drop trigger if exists ruma_sync_shared_catalog_after_inventory_save on public.inventory_snapshots;
+create trigger ruma_sync_shared_catalog_after_inventory_save
+after insert or update of data on public.inventory_snapshots
+for each row execute function public.ruma_sync_shared_catalog_from_snapshot();
