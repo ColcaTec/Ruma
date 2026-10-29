@@ -14,6 +14,7 @@
   let catalogSyncTimer = null;
   let catalogSyncRunning = false;
   let catalogSyncPending = new Map();
+  let catalogSyncWaiters = [];
 
   const $ = id => document.getElementById(id);
   const stateLabel = (text, state = '') => {
@@ -95,7 +96,7 @@
     const nameKey = normalize(name).replace(/[^a-z0-9]+/g, ' ').trim();
     return { name, barcode, unit, unitsPerPackage, key: barcodeKey ? `barcode:${barcodeKey}` : `name:${nameKey}` };
   }
-  function sharedCatalogCacheKey() { return `ruma_shared_catalog_published_${businessId}_v1`; }
+  function sharedCatalogCacheKey() { return `ruma_shared_catalog_published_${businessId}_v2`; }
   function getSharedCatalogCache() {
     try { return JSON.parse(localStorage.getItem(sharedCatalogCacheKey()) || '{}'); } catch { return {}; }
   }
@@ -118,6 +119,16 @@
     clearTimeout(catalogSyncTimer);
     catalogSyncTimer = setTimeout(syncSharedCatalogQueue, 100);
   }
+  function waitForSharedCatalogSync() {
+    if (!catalogSyncRunning && !catalogSyncPending.size) return Promise.resolve();
+    return new Promise(resolve => {
+      catalogSyncWaiters.push(resolve);
+      if (!catalogSyncRunning) {
+        clearTimeout(catalogSyncTimer);
+        catalogSyncTimer = setTimeout(syncSharedCatalogQueue, 0);
+      }
+    });
+  }
   async function syncSharedCatalogQueue() {
     if (catalogSyncRunning || !catalogSyncPending.size || !session || !businessId) return;
     catalogSyncRunning = true;
@@ -138,6 +149,7 @@
       catalogSyncRunning = false;
       if (hadFailure) stateLabel('Inventario sincronizado; no se pudo actualizar el catálogo compartido', 'error');
       if (catalogSyncPending.size) catalogSyncTimer = setTimeout(syncSharedCatalogQueue, 1000);
+      else catalogSyncWaiters.splice(0).forEach(resolve => resolve());
     }
   }
   function showApp() {
@@ -186,6 +198,7 @@
       await applyCloudData(row.data, row.revision);
       if (row.data?.bonusUnitModel !== 'bonus-units-v1') revision = await saveSnapshot(app.getLocalData(), revision);
       showApp();
+      if (hasSeparateCopy) queueSharedCatalogSync(local.products || []);
       stateLabel(hasSeparateCopy ? 'La nube ya tiene datos; una copia diferente de este dispositivo quedó guardada por separado' : 'Sincronizado', hasSeparateCopy ? 'error' : 'saved');
       return;
     }
@@ -398,6 +411,7 @@
     catch (error) { showGate(); formStatus(error.message || 'No se pudo cargar tu cuenta. Intenta iniciar sesión otra vez.'); }
   }
   async function searchSharedProducts(query) {
+    await waitForSharedCatalogSync();
     const rows = await api('rpc/ruma_search_shared_products', { method: 'POST', body: JSON.stringify({ p_query: query }) });
     return Array.isArray(rows) ? rows : [];
   }
