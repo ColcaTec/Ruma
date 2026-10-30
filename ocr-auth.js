@@ -158,16 +158,17 @@
     if (response.status === 403) throw new Error('Tu cuenta aún no está habilitada para usar Ruma. Pide al administrador que la active.');
     if (!response.ok) {
       if (result.error === 'sin_clave_gemini') throw new Error('Falta configurar GEMINI_API_KEY en los secretos de Supabase.');
-      if (result.error === 'gemini' && result.status === 503) throw new Error('Gemini está temporalmente saturado (503). La función ya reintentó el análisis; espera un momento y vuelve a leer la boleta.');
-      if (result.error === 'gemini' && result.status === 429) {
-        let detail = '';
-        try { const parsed = JSON.parse(result.detail || '{}'); detail = parsed.error?.message || parsed.message || ''; } catch { detail = result.detail || ''; }
-        detail = String(detail).replace(/\s+/g, ' ').slice(0, 220);
-        if (/per.?day|daily|requestsperday|quota exceeded/i.test(detail)) throw new Error(`La cuota diaria de Gemini está agotada. Revisa los límites o la facturación de Google AI Studio antes de volver a escanear. ${detail}`);
-        if (detail) throw new Error(`Gemini limitó esta solicitud. Si indica límite por minuto, espera y reintenta; si indica cuota diaria o facturación, habrá que revisar Google AI Studio. ${detail}`);
-        throw new Error('Gemini alcanzó el límite de solicitudes. Revisa los límites o la facturación de Google AI Studio antes de volver a intentarlo.');
-      }
-      if (result.error === 'gemini') throw new Error(`Gemini respondió con error ${result.status || ''}. Revisa la clave y el modelo en Supabase.`);
+      if (result.error === 'sin_clave_groq') throw new Error('Gemini alcanzó un límite o un error temporal, pero falta configurar GROQ_API_KEY en los secretos de Supabase para usar el respaldo.');
+      if (result.error === 'gemini_auth') throw new Error('Gemini rechazó su clave o el acceso. Revisa el secreto GEMINI_API_KEY en el proyecto Supabase del OCR. No se llamó a Groq.');
+      if (result.error === 'gemini_request') throw new Error(`Gemini rechazó la solicitud (${result.status || 'formato/configuración'}). Revisa la imagen y el modelo configurado. No se llamó a Groq.`);
+      if (result.error === 'groq_auth') throw new Error('Groq rechazó la clave. Revisa el secreto GROQ_API_KEY en Supabase.');
+      if (result.error === 'groq_request') throw new Error(`Groq rechazó la solicitud (${result.status || 'formato/configuración'}). Revisa el formato de la imagen y el modelo configurado.`);
+      if (result.error === 'groq_limit') throw new Error('Groq respondió con límite de uso (429). Espera a que se restablezca y vuelve a intentarlo. En Groq Console → Limits revisa si fue por minuto o cuota diaria. Ruma no cambia tu plan ni activa pagos.');
+      if (result.error === 'groq' || result.error === 'ocr_fallback_failed') throw new Error(`Gemini no estuvo disponible (${result.geminiStatus || 'temporal'}) y Groq respondió con error ${result.status || ''}. Inténtalo más tarde.`);
+      if (result.error === 'respuesta_invalida') throw new Error(`El lector respondió en un formato inesperado${result.provider ? ` (${result.provider})` : ''}. Vuelve a intentarlo con una foto más clara.`);
+      if (['json_invalido', 'peticion_invalida', 'imagen_invalida'].includes(result.error)) throw new Error('La foto o solicitud tiene un formato no válido. Elige una imagen JPG o PNG e inténtalo de nuevo.');
+      if (result.error === 'gemini' && result.status === 429) throw new Error('Gemini alcanzó el límite de solicitudes y no se pudo completar el respaldo. Revisa GROQ_API_KEY en Supabase.');
+      if (result.error === 'gemini') throw new Error(`Gemini respondió con error ${result.status || ''}. Revisa la clave y el modelo configurados en Supabase.`);
       throw new Error(result.detail || result.error || 'No se pudo analizar esta foto.');
     }
     return result.data || {};
